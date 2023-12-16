@@ -1,4 +1,11 @@
-import { Client, CommandInteraction, SlashCommandBuilder, ClientEvents, Awaitable } from 'discord.js';
+import {
+  Client,
+  CommandInteraction,
+  SlashCommandBuilder,
+  ClientEvents,
+  Awaitable,
+} from 'discord.js';
+
 declare global {
   export type Command = {
     data: SlashCommandBuilder;
