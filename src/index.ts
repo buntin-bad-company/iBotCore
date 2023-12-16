@@ -1,1 +1,1 @@
-console.log("Hello via Bun!");
+import { Client } from 'discord.js';
