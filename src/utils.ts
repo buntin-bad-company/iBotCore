@@ -22,3 +22,17 @@ export const checkPathSync = (path: string): FileStatus => {
     };
   }
 };
+
+export const readJsonFile = <T>(path: string): T | null => {
+  try {
+    if (!fs.existsSync(path)) {
+      return null;
+    }
+    const data = fs.readFileSync(path, 'utf-8');
+    return JSON.parse(data) as T;
+  } catch (error) {
+    return null;
+  }
+};
+
+export const writeJsonFile = (path: string, data: any) => fs.writeFileSync(path, JSON.stringify(data));

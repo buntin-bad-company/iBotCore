@@ -8,6 +8,6 @@ export type  Monitor =  {
   "monitors": []
 }
 */
-export type  BotData =  {
+export type  FBBotData =  {
   monitors: Monitor[];
 } 

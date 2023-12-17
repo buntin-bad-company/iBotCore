@@ -16,9 +16,9 @@ export abstract class Division {
   */
   public name: string;
   readonly core: Core;
-  private commands: Command[] = [];
-  private eventSets: EventSet[] = [];
-  private division_data_dir:string;
+  protected commands: Command[] = [];
+  protected eventSets: EventSet[] = [];
+  protected division_data_dir:string;
   public constructor(core:Core,name: string) {
     this.core = core;
     this.name = name;
@@ -30,4 +30,7 @@ export abstract class Division {
   }
   abstract get slashCommands(): Command[];
   abstract get events(): EventSet[];
+  protected printInfo(message:string) {
+    console.log(`iBotCore::${this.name} => ${message}`)
+  }
 }

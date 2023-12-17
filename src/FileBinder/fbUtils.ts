@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { BotData } from './types';
+import { FBBotData } from './types';
 import { Attachment, Collection } from 'discord.js';
 import path from 'path';
 //Collection<string, Attachment>
@@ -44,12 +44,11 @@ export const checkChannelId = (channelId: string) => {
   return ids.includes(channelId);
 }
 
-const jsonFilename = Bun.env.BOT_DATA ?? '';
-const getData = () => JSON.parse(fs.readFileSync(jsonFilename, 'utf-8')) as BotData;
 
-const setData = (data: BotData) => fs.writeFileSync(jsonFilename, JSON.stringify(data));
-
-export const getIds = () => getData().monitors.map(monitor => monitor.channelId);
+export const getIds = () => {
+  const data:FBBotData = 
+  monitors.map(monitor => monitor.channelId);
+}
 
 export const addMonitor = (name: string, id: string) => {
   const data = getData();
