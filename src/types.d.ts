@@ -13,7 +13,7 @@ declare global {
   };
   export type EventSet = {
     name?: string;
-    once?: boolean;
+    once: boolean;
     event: keyof ClientEvents;
     listener: (...args: ClientEvents[keyof ClientEvents]) => Awaitable<void>;
   };
