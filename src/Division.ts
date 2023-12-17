@@ -1,3 +1,9 @@
+
+import { Core } from "./Core";
+import { checkPathSync } from "./utils";
+
+
+
 export abstract class Division {
   /* 
   Divisionが持つ機能。
@@ -9,13 +15,19 @@ export abstract class Division {
   重複なしで、追加できれば良い。Divisiondごとに処理が失敗した場合の通知、再起動などをDisocrd上から行える処理を考えているため、処理単位については気を付ける。
   */
   public name: string;
-  public constructor(
-    name: string,
-    private commands: Command[],
-    private eventSets: EventSet[]
-  ) {
+  readonly core: Core;
+  private commands: Command[] = [];
+  private eventSets: EventSet[] = [];
+  private division_data_dir:string;
+  public constructor(core:Core,name: string) {
+    this.core = core;
     this.name = name;
+    this.division_data_dir = `./${name}`;
+    const dataDirStatus = checkPathSync(this.division_data_dir);
+    if(!(dataDirStatus.exists && dataDirStatus.isDirectory)) {
+      throw new Error(`${this.name}::DataDir does not exist.`);
+    }
   }
   abstract get slashCommands(): Command[];
-  abstract get events():EventSet[];
+  abstract get events(): EventSet[];
 }

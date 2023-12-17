@@ -9,6 +9,7 @@ export class Core extends Client {
   private divisions = new Collection<string, Division>(); //iBotCoreに登録されているdivisionコレクション
   private commands: Collection<string, Command>; //iBotCore全体のコマンドコレクション
   constructor() {
+    //TODO:インテンツについても、Divisionから取得し必要最低限（Set）で始めるようにする。
     super({
       intents: [
         GatewayIntentBits.Guilds,

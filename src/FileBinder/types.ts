@@ -1,4 +1,4 @@
-type Monitor = {
+export type  Monitor =  {
   name: string;
   channelId: string;
 };
@@ -8,6 +8,6 @@ type Monitor = {
   "monitors": []
 }
 */
-export type BotData = {
+export type  BotData =  {
   monitors: Monitor[];
 } 
