@@ -43,6 +43,10 @@ class FileBinder extends Division {
   private saveData() {
     util.writeJsonFile(this.fileBinderDivDataPath, this.data);
   }
+  private checkChannelId(channelId: string) {
+    const ids = this.data.monitors.map((monitor) => monitor.channelId);
+    return ids.includes(channelId);
+  }
   private parseFilename(filename: string): { basename: string; ext: string } {
     const parts = filename.split('.');
     const ext = parts.pop() || '???';
@@ -109,11 +113,36 @@ class FileBinder extends Division {
     };
     commands.push(fb_turn_on);
 
+    //fb_turn_off;
+    const fb_turn_off: Command = {
+      data: new SlashCommandBuilder().setName('unset').setDescription('unset this channel for file binding'),
+      execute: async (interaction) => {
+        const channel = interaction.channel;
+        if (!channel || channel.type !== 0) return;
+        const { id, name } = channel;
+        const result = this.removeMonitor(id);
+        const message = (result ? 'Successfully unset' : 'Already unset') + this.availableChannels;
+        await interaction.reply(message);
+      },
+    };
+    commands.push(fb_turn_off);
     return commands;
   }
-  public get events():EventSet[] {
-    //mock
-    const events: Event[] = [];
+  public get events(): EventSet[] {
+    const main: EventSet = {
+      name: 'FileBinder::Main',
+      once: false,
+      event: Events.MessageCreate,
+      listener: async (message) => {
+        if (!message) return;
+        if (message.author.bot || message.attachments.size === 0) return;
+        if (!this.checkChannelId(message.channelId)) return;
+        const results = await this.saveAttachmentIntoDataDir(message.attachments, this.bindingDirPath, this.urlPreset);
+        const out = `${results.map((result) => `[${result.name}](<${result.url}>)`).join('\n')}`;
+        message.reply(out);
+      },
+    };
+    const events: EventSet[] = [];
     return events;
   }
 }

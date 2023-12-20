@@ -9,7 +9,7 @@ declare global {
     name?: string;
     once: boolean;
     event: keyof ClientEvents;
-    listener: (...args: ClientEvents[keyof ClientEvents]) => Awaitable<void>;
+    listener: (...args: ClientEvents[event]) => Awaitable<void>;
   };
   export type FileStatus = { exists: boolean; isDirectory: boolean; isFile: boolean };
 }

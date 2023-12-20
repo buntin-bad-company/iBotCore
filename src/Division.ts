@@ -5,7 +5,7 @@ import { checkPathSync } from "./utils";
 
 
 export abstract class Division {
-  /* 
+  /*
   Divisionが持つ機能。
   名前とそれに応じたDiscordに実装する様々な機能をペアとして、一つの処理単位としてモジュール化する。
   これをCoreインスタンスが実際に実行する。
