@@ -128,3 +128,9 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+
+# me
+data/FileBinder/data/*
+!data/FileBinder/data/.gitkeep
+data/FileBinder/bot_data.json

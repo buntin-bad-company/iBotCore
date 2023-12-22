@@ -7,29 +7,32 @@ import { Core } from '../Core';
 import { FBBotData, Attachments } from './types';
 import * as util from '../utils';
 
-class FileBinder extends Division {
+export class FileBinder extends Division {
   private bindingDirPath: string;
   private fileBinderDivDataPath: string;
   private urlPreset: string;
   constructor(core: Core) {
-    const name = 'FileBinder';
-    super(core, name);
+    super(core);
     const dataDir = Bun.env.FILE_BINDER_DATA_DIR!;
     const botData = Bun.env.FILE_BINDER_BOT_DATA!;
     const urlPreset = Bun.env.FILE_BINDER_URL_PRESET!;
     this.urlPreset = urlPreset;
     this.bindingDirPath = path.join(this.division_data_dir, dataDir);
     if (!fs.existsSync(this.bindingDirPath)) {
-      throw new Error('Please provide a valid data directory.');
+      throw new Error(`Please provide a valid data directory. [${this.bindingDirPath}]`);
     } else {
-      this.printInfo(`Binding Data Dir exists: ${dataDir}`);
+      this.printInfo(`Binding Data Dir exists: ${this.bindingDirPath}`);
     }
     this.fileBinderDivDataPath = path.join(this.division_data_dir, botData);
     if (!fs.existsSync(this.fileBinderDivDataPath)) {
-      throw new Error('Please provide a valid bot data file.');
+      throw new Error(
+        `Please provide a valid bot data file.If this run is first time, run src/FileBinder/genBotData.ts [${this.fileBinderDivDataPath}]`
+      );
     } else {
-      this.printInfo(`Bot data file exists: ${botData}`);
+      this.printInfo(`Bot data file exists: ${this.fileBinderDivDataPath}`);
     }
+
+    this.printInitMessage();
   }
   private get data() {
     const data: FBBotData | null = util.readJsonFile(this.fileBinderDivDataPath);
@@ -40,8 +43,8 @@ class FileBinder extends Division {
     }
     return data;
   }
-  private saveData() {
-    util.writeJsonFile(this.fileBinderDivDataPath, this.data);
+  private saveData(data:FBBotData) {
+    util.writeJsonFile(this.fileBinderDivDataPath, data);
   }
   private checkChannelId(channelId: string) {
     const ids = this.data.monitors.map((monitor) => monitor.channelId);
@@ -63,14 +66,16 @@ class FileBinder extends Division {
   }
   private addMonitor(name: string, id: string): boolean {
     if (this.data.monitors.map((monitor) => monitor.channelId).includes(id)) return false;
-    this.data.monitors.push({ name, channelId: id });
-    this.saveData();
+    const newData = this.data;
+    newData.monitors.push({ name, channelId: id });
+    this.saveData(newData);
     return true;
   }
   private removeMonitor(id: string) {
     const ifIncludes = this.data.monitors.map((monitor) => monitor.channelId).includes(id);
-    this.data.monitors = this.data.monitors.filter((monitor) => monitor.channelId !== id);
-    this.saveData();
+    const newData = this.data;
+    newData.monitors = this.data.monitors.filter((monitor) => monitor.channelId !== id);
+    this.saveData(newData);
     return ifIncludes;
   }
   private get availableChannels() {
@@ -96,7 +101,6 @@ class FileBinder extends Division {
     return Promise.all(results);
   }
   public get slashCommands() {
-    //fb_turn_on;
     const commands: Command[] = [];
     const fb_turn_on: Command = {
       data: new SlashCommandBuilder()
@@ -107,15 +111,13 @@ class FileBinder extends Division {
         if (!channel || channel.type !== 0) return;
         const { id, name } = channel;
         const result = this.addMonitor(name, id);
-        const message = (result ? 'Successfully set' : 'Already set') + this.availableChannels;
+        const message = (result ? 'Successfully set' : 'Already set') + '\n' +this.availableChannels;
         await interaction.reply(message);
       },
     };
     commands.push(fb_turn_on);
-
-    //fb_turn_off;
     const fb_turn_off: Command = {
-      data: new SlashCommandBuilder().setName('unset').setDescription('unset this channel for file binding'),
+      data: new SlashCommandBuilder().setName('fb_turn_off').setDescription('unset this channel for file binding'),
       execute: async (interaction) => {
         const channel = interaction.channel;
         if (!channel || channel.type !== 0) return;
@@ -142,7 +144,7 @@ class FileBinder extends Division {
         message.reply(out);
       },
     };
-    const events: EventSet[] = [];
+    const events: EventSet[] = [main];
     return events;
   }
 }

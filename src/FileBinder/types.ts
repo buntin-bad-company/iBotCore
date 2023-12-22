@@ -4,11 +4,6 @@ export type  Monitor =  {
   channelId: string;
 };
 
-/* 
-{
-  "monitors": []
-}
-*/
 export type  FBBotData =  {
   monitors: Monitor[];
 } 
