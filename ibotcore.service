@@ -11,7 +11,7 @@ Type=simple
 # which user to use when starting the app
 User=buntin
 # path to your application's root directory
-WorkingDirectory=/home/buntin/gits/Loki
+WorkingDirectory=/home/buntin/gits/iBotCore
 # the command to start the app
 # requires absolute paths
 ExecStart=/home/buntin/.bun/bin/bun run src/index.ts -r
