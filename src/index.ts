@@ -14,16 +14,16 @@ if (!token || !clientId || !guildId) {
   throw new Error('Please provide a valid token, client ID, and guild ID.');
 }
 
-const core = new Core(token,clientId);
+const core = new Core(token, clientId);
 const fileBinder = new FileBinder(core);
 
 core.addDivision(fileBinder);
 
 
-if(ifRegister) {
+if (ifRegister) {
   core.commandRegister();
 }
 
-core.start();
+await core.start();
 
 

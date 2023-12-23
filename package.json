@@ -2,6 +2,9 @@
   "name": "ibotcore",
   "module": "src/index.ts",
   "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts -r"
+  },
   "devDependencies": {
     "bun-types": "latest"
   },
