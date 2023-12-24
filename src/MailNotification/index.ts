@@ -1,7 +1,8 @@
-import { Database } from 'bun:sqlite';
+import Database, { Statement } from 'bun:sqlite';
 import imap from 'imap';
 import { simpleparser } from 'mailparser';
 import { Channel, Events, SlashCommandBuilder } from 'discord.js';
+
 import { Elysia } from 'elysia';
 import { cron } from '@elysiajs/cron';
 import { Division } from '../Division';
@@ -27,12 +28,11 @@ export class MailNotification extends Division {
     this.channelIds = [];
     this.client = null;
     this.databaseFilePath = `${this.division_data_dir}/mail.db`;
-    try {
-      const db = new Database(this.databaseFilePath);
-      db.exec('PRAGMA journal_mode = WAL;');
-    } catch (e) {
-      console.error(e);
-      throw new Error(`Failed to open database. [${this.databaseFilePath}]`);
+    const status = util.checkPathSync(this.databaseFilePath);
+    if (!status.exists && !status.isFile) {
+      this.initDatabase();
+    } else {
+      this.db = new Database(this.databaseFilePath);
     }
     this.db = null;
     // if () {
@@ -41,10 +41,37 @@ export class MailNotification extends Division {
     this.printInitMessage();
   }
 
+  private initDatabase() {
+    const db = new Database(this.databaseFilePath);
+
+    // メールIDを格納するためのテーブルを作成する
+    db.exec(`CREATE TABLE IF NOT EXISTS mail_ids (
+  id INTEGER PRIMARY KEY,
+  mail_id TEXT NOT NULL,
+  checked_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+  }
+  public addMailId(mailId: string): void {
+    const stmt: Statement = this.db.prepare('INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)');
+    stmt.run(mailId);
+  }
+
+  public checkMailIdExists(mailId: string): boolean {
+    const stmt: Statement = this.db.prepare('SELECT 1 FROM mail_ids WHERE mail_id = ?');
+    const result = stmt.get(mailId);
+    return result !== undefined;
+  }
+
+  public removeMailId(mailId: string): void {
+    const stmt: Statement = this.db.prepare('DELETE FROM mail_ids WHERE mail_id = ?');
+    stmt.run(mailId);
+  }
+
   private mailNotification() {
     console.log('mail-notification');
   }
-  
+
   private setOnline() {
     this.online = true;
     this.client = new Elysia().use(
