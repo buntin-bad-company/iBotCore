@@ -52,6 +52,6 @@ export const testIMAPConnection = async (
     return true; // 接続成功
   } catch (error) {
     console.error('IMAP接続エラー:', error);
-    return false; // 接続失敗
   }
+  return false; // 接続失敗
 };

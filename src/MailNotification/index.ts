@@ -17,6 +17,7 @@ import {
   CommandInteraction,
   ChannelType,
   EmbedBuilder,
+  InteractionReplyOptions,
 } from 'discord.js';
 import { Elysia } from 'elysia';
 import { cron } from '@elysiajs/cron';
@@ -106,13 +107,13 @@ export class MailNotification extends Division {
     //serverdb
     if (!serverdbStatus.exists || !serverdbStatus.isFile) {
       this.serverdb.exec(`
-    CREATE TABLE IF NOT EXISTS server_configs (
-      id INTEGER PRIMARY KEY,
-      host TEXT NOT NULL,
-      user TEXT NOT NULL,
-      password TEXT NOT NULL
-    )
-  `);
+      CREATE TABLE IF NOT EXISTS server_configs (
+        id INTEGER PRIMARY KEY,
+        host TEXT NOT NULL,
+        user TEXT NOT NULL,
+        password TEXT NOT NULL
+      )
+    `);
     }
     this.serverdb = new Database(this.serverDatabaseFilePath);
     //channeldb
@@ -279,6 +280,7 @@ export class MailNotification extends Division {
     const stmt = this.serverdb.prepare(`
     DELETE FROM server_configs WHERE host = ? AND user = ? AND password = ?`);
     stmt.run(config.host, config.user, config.password);
+    this.printInfo(`removed a server config{${JSON.stringify(config)}}`);
   }
 
   //channeldb関連
@@ -383,6 +385,7 @@ export class MailNotification extends Division {
     }
   }
   //slashcommand,, modal,serverconfig関連
+  // モーダル提出イベントの処理
   private handleModalSubmitEventSet: InteractionCreateEventSet = {
     name: 'mn::slashcommand:modalsubmits:handler',
     once: false,
@@ -396,52 +399,63 @@ export class MailNotification extends Division {
         const password = interaction.fields.getField('password').value;
         const config: ServerConfig = { host, user, password };
         const added = this.addServerConfig(config);
-        interaction.deferReply({ ephemeral: true });
-        testIMAPConnection(host, user, password).then((result) => {
-          if (result) {
-            this.printInfo(
-              `Modal:Submits:handler-> added a server config{${JSON.stringify(
-                added
-              )}}`
-            );
-            this.setOnline();
-            interaction.editReply({
-              content: `[${user}@${host}](<${user}@${host}>) is online`,
-              ephemeral: true,
-            } as any);
-          } else {
-            this.printInfo(
-              `Modal:Submits:handler-> failed to add a server config{${JSON.stringify(
-                added
-              )}}`
-            );
-            interaction.editReply({
-              content:
-                'Mail server configuration failed' +
-                `${(added.user, added.host)}`,
-              ephemeral: true,
-            } as any);
-          }
-        });
-
+        const result = await testIMAPConnection(host, user, password);
+        if (result) {
+          this.printInfo(
+            `Modal:Submits:handler-> added a server config{${JSON.stringify(
+              added
+            )}}`
+          );
+          this.setOnline();
+          interaction.editReply({
+            content: `[${user}@${host}](<${user}@${host}>) is online`,
+            ephemeral: true,
+          } as any);
+        } else {
+          this.printInfo(
+            `Modal:Submits:handler-> failed to add a server config{${JSON.stringify(
+              added
+            )}}`
+          );
+          interaction.editReply({
+            content:
+              'Mail server configuration failed' +
+              `${(added.user, added.host)}`,
+            ephemeral: true,
+          } as any);
+        }
         await interaction.reply({
           content: 'Mail server configuration saved',
           ephemeral: true,
         });
       } else if (interaction.customId === 'removeServerModal') {
-        // ユーザー名、ホスト名、パスワードを取得
-        const user = interaction.fields.getTextInputValue('user');
-        const host = interaction.fields.getTextInputValue('host');
-        const password = interaction.fields.getTextInputValue('password');
-
-        // ここで適切なサーバー設定を削除するロジックを実装
-        // ...
-        console.log({ user, host, password });
-
-        await interaction.reply({
+        let message: InteractionReplyOptions = {
           content: 'Mail server configuration removed',
           ephemeral: true,
-        });
+        };
+        try {
+          const user = interaction.fields.getTextInputValue('user');
+          const host = interaction.fields.getTextInputValue('host');
+          const password = interaction.fields.getField('password').value;
+          this.removeServerConfig({ user, host, password });
+        } catch (e) {
+          if (e instanceof Error) {
+            this.printInfo(
+              `Modal:Submits:handler-> failed to remove a server config${e.message}`
+            );
+            message = {
+              content: 'Mail server configuration failed to remove',
+              ephemeral: true,
+            };
+          } else {
+            message = {
+              content: 'Mail server configuration failed to remove',
+              ephemeral: true,
+            };
+          }
+        } finally {
+          await interaction.reply(message);
+        }
       }
     },
   };
@@ -545,6 +559,32 @@ export class MailNotification extends Division {
         });
       },
     };
+    const mn_show_status_all: Command = {
+      data: new SlashCommandBuilder()
+        .setName('mn_show_status_all')
+        .setDescription('Show the status of mail notification.'),
+      execute: async (interaction) => {
+        if (!interaction.isCommand()) return;
+        const channelId = interaction.channelId;
+        if (!channelId) interaction.reply('channelId is undefined');
+        const availableChannels = `Now Available Channels:\n${this.channelIds
+          .map(util.genChannelString)
+          .join('\n')}`;
+        const availableServers = `Now Available Servers:\n${this.serverConfigs
+          .map(
+            (config) =>
+              `${config.user}@${config.host}||password:"${config.password}"||`
+          )
+          .join('\n')}`;
+        await interaction.reply({
+          content: `${
+            this.online
+              ? availableChannels + '\n' + availableServers
+              : 'Now offline'
+          }`,
+        });
+      },
+    };
     const mn_add_mailconfiguration: Command = {
       data: new SlashCommandBuilder()
         .setName('mn_add_mailconfig')
@@ -587,48 +627,45 @@ export class MailNotification extends Division {
     const mn_rm_mailconfiguration: Command = {
       data: new SlashCommandBuilder()
         .setName('mn_rm_mailconfig')
-        .setDescription('Remove a mail server configuration')
-        .addStringOption((option) =>
-          option
-            .setName('name')
-            .setDescription('The user name of the configuration')
-            .setRequired(true)
-        )
-        .addStringOption((option) =>
-          option
-            .setName('host')
-            .setDescription('The host of the configuration')
-            .setRequired(true)
-        ),
+        .setDescription('Remove a mail server configuration'),
       execute: async (interaction) => {
         if (!interaction.isCommand()) return;
 
-        const nameOption = interaction.options.get('name');
-        const hostOption = interaction.options.get('host');
-
-        if (!nameOption || !hostOption) {
-          await interaction.reply('Name and host are required.');
-          return;
-        }
-        const name = nameOption.value as string;
-        const host = hostOption.value as string;
-
-        console.log({ name, host });
-
+        // モーダルを作成
         const modal = new ModalBuilder()
           .setCustomId('removeServerModal')
           .setTitle('Remove Mail Server Configuration');
+        const userInput = new TextInputBuilder()
+          .setCustomId('user')
+          .setLabel('User Name')
+          .setStyle(TextInputStyle.Short);
+        const hostInput = new TextInputBuilder()
+          .setCustomId('host')
+          .setLabel('Host')
+          .setStyle(TextInputStyle.Short);
         const passwordInput = new TextInputBuilder()
           .setCustomId('password')
           .setLabel('Password')
-          .setStyle(TextInputStyle.Short); // 修正: TextInputStyle.Paragraph または Short
-        const actionRow =
-          new ActionRowBuilder<TextInputBuilder>().addComponents(passwordInput);
-        modal.addComponents(actionRow);
+          .setStyle(TextInputStyle.Short);
+        const actionRowUser =
+          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+            userInput
+          );
+        const actionRowHost =
+          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+            hostInput
+          );
+        const actionRowPassword =
+          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+            passwordInput
+          );
+        modal.addComponents(actionRowUser, actionRowHost, actionRowPassword);
 
+        // モーダルを表示
         await interaction.showModal(modal);
       },
     };
+
     const mn_fetch: Command = {
       data: new SlashCommandBuilder()
         .setName('mn_fetch')
@@ -641,6 +678,8 @@ export class MailNotification extends Division {
       mn_add_mailconfiguration,
       mn_rm_mailconfiguration,
       mn_show_status,
+      mn_show_status_all,
+      mn_fetch,
     ];
   }
   public get events() {
