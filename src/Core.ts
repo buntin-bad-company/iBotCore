@@ -27,7 +27,7 @@ export class Core extends Client {
     this.coreClientId = clientId;
     return this;
   }
-  private addCommands (newCommands: Command[]) {
+  private addCommands(newCommands: Command[]) {
     const reservedNamePool = new Set(newCommands.map((command) => command.data.name));
     const ifDuplicate = newCommands.every((command) => !reservedNamePool.has(command.data.name));
     if (ifDuplicate) {
@@ -37,7 +37,7 @@ export class Core extends Client {
       this.commands.set(command.data.name, command);
     }
   }
-  private addEvents (newEvents: EventSet[]) {
+  private addEvents(newEvents: EventSet[]) {
     for (const event of newEvents) {
       if (event.once) {
         this.once(event.event, event.listener);
@@ -46,7 +46,7 @@ export class Core extends Client {
       }
     }
   }
-  public addDivision (div: Division) {
+  public addDivision(div: Division) {
     //division追加処理
     const newDivName = div.name;
     const reservedNamePool = new Set(this.divisions.map((division) => division.name));
@@ -66,11 +66,11 @@ export class Core extends Client {
     return this;
   }
 
-  public async commandRegister () {
+  public async commandRegister() {
     try {
       const client = new REST().setToken(this.coreToken);
       const commands: Command[] = Array.from(this.commands.values());
-      console.log(`Started refreshing ${ commands.length } application (/) commands.`);
+      console.log(`Started refreshing ${commands.length} application (/) commands.`);
       const data = await client.put(Routes.applicationCommands(this.coreClientId), {
         body: commands.map((command) => command.data.toJSON()),
       });
@@ -102,7 +102,7 @@ export class Core extends Client {
     },
   };
 
-  public async start () {
+  public async start() {
     this.addEvents([this.commandHandler]);
     this.login(this.coreToken);
     return this;

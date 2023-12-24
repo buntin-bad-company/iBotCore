@@ -12,6 +12,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@elysiajs/cron": "^0.8.0",
     "discord.js": "^14.14.1"
   }
 }

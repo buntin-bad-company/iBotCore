@@ -1,8 +1,5 @@
-
-import { Core } from "./Core";
-import { checkPathSync } from "./utils";
-
-
+import { Core } from './Core';
+import { checkPathSync } from './utils';
 
 export abstract class Division {
   /*
@@ -28,20 +25,20 @@ export abstract class Division {
   public constructor(core: Core) {
     this.core = core;
     this.name = this.constructor.name;
-    this.division_data_dir = `./data/${ this.name }`;
+    this.division_data_dir = `./data/${this.name}`;
     const dataDirStatus = checkPathSync(this.division_data_dir);
     if (!(dataDirStatus.exists && dataDirStatus.isDirectory)) {
-      throw new Error(`${ this.name }::DataDir does not exist. [${ this.division_data_dir }]`);
+      throw new Error(`${this.name}::DataDir does not exist. [${this.division_data_dir}]`);
     }
   }
-  protected printInitMessage () {
-    this.printInfo(`Initialized.${ this.name }`);
-    this.printInfo(`SlashCommands: ${ this.slashCommands.length }`);
-    this.printInfo(`Events: ${ this.events.length }`);
+  protected printInitMessage() {
+    this.printInfo(`Initialized.${this.name}`);
+    this.printInfo(`SlashCommands: ${this.slashCommands.length}`);
+    this.printInfo(`Events: ${this.events.length}`);
   }
-  abstract get slashCommands (): Command[];
-  abstract get events (): EventSet[];
-  protected printInfo (message: string) {
-    console.log(`iBotCore::${ this.name } => ${ message }`)
+  abstract get slashCommands(): Command[];
+  abstract get events(): EventSet[];
+  protected printInfo(message: string) {
+    console.log(`iBotCore::${this.name} => ${message}`);
   }
 }
