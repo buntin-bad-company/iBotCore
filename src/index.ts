@@ -1,5 +1,6 @@
 import { Core } from './Core';
 import { FileBinder } from './FileBinder';
+import { MailNotification } from './MailNotification';
 
 const argv = Bun.argv;
 
@@ -16,8 +17,10 @@ if (!token || !clientId || !guildId) {
 
 const core = new Core(token, clientId);
 const fileBinder = new FileBinder(core);
+const mailNotification = new MailNotification(core);
 
 core.addDivision(fileBinder);
+core.addDivision(mailNotification);
 
 if (ifRegister) {
   core.commandRegister();

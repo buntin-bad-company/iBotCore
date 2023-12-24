@@ -130,7 +130,12 @@ dist
 .pnp.*
 
 
-# me
+### ibotcore modules
+## ibotcore filebinder
 data/FileBinder/data/*
 !data/FileBinder/data/.gitkeep
 data/FileBinder/bot_data.json
+
+## ibotcore mailnotification
+data/MailNotification/*
+!data/MailNotification/.gitkeep

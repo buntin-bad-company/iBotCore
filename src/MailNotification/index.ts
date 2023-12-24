@@ -218,7 +218,7 @@ export class MailNotification extends Division {
         await interaction.showModal(modal);
       },
     };
-    return [mn_turn_on, mn_turn_off];
+    return [mn_turn_on, mn_turn_off, mn_add_mailconfiguration];
   }
   public get events() {
     return [this.handleModalSubmitEventSet];
