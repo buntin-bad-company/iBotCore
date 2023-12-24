@@ -1,10 +1,12 @@
 {
   "cSpell.words": [
     "availables",
+    "channeldb",
     "DATETIME",
     "Divisiond",
     "Elysia",
     "elysiajs",
+    "fastq",
     "htpasswd",
     "ibotcore",
     "mailconfig",
@@ -14,8 +16,12 @@
     "mailserver",
     "modalsubmits",
     "ronly",
+    "selectmenu",
+    "selectserverconfig",
+    "seqno",
     "serverconfig",
     "serverdb",
-    "slashcommand"
+    "slashcommand",
+    "synthia"
   ]
 }

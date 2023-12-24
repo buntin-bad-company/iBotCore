@@ -15,7 +15,7 @@
     "moduleDetection": "force",
     // if TS 4.x or earlier
     // "moduleResolution": "nodenext",
-
+    "esModuleInterop": true,
     "jsx": "react-jsx", // support JSX
     "allowJs": true, // allow importing `.js` from `.ts`
 

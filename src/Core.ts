@@ -98,7 +98,6 @@ export class Core extends Client {
         }
       );
       console.log('Successfully reloaded application (/) commands.');
-      console.log(data);
     } catch (e) {
       console.error(e);
     }
@@ -125,8 +124,19 @@ export class Core extends Client {
     },
   };
 
+  private get initEventSet(): EventSet {
+    return {
+      name: 'Core::Ready',
+      once: true,
+      event: Events.ClientReady,
+      listener: async () => {
+        console.log(`Logged in as ${this.user?.tag}!`);
+      },
+    };
+  }
+
   public async start() {
-    this.addEvents([this.commandHandler]);
+    this.addEvents([this.commandHandler, this.initEventSet]);
     this.login(this.coreToken);
     return this;
   }
