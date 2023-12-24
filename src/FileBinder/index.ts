@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Events, SlashCommandBuilder } from 'discord.js';
+import { Events, Interaction, Message, SlashCommandBuilder } from 'discord.js';
 
 import { Division } from '../Division';
 import { Core } from '../Core';
@@ -155,31 +155,31 @@ export class FileBinder extends Division {
     return commands;
   }
   public get events(): EventSet[] {
-    const main: EventSet = {
-      name: 'FileBinder::Main',
-      once: false,
-      event: Events.MessageCreate,
-      listener: async (message) => {
-        if (!message) return;
-        if (message.author.bot || message.attachments.size === 0) return;
-        if (!this.checkChannelId(message.channelId)) return;
-        const results = await this.saveAttachmentIntoDataDir(
-          message.attachments,
-          this.bindingDirPath,
-          this.urlPreset
-        );
-        this.printInfo(
-          `added ${results.length}-files. {${results
-            .map((result) => result.name)
-            .join(',')}}`
-        );
-        const out = `${results
-          .map((result) => `[${result.name}](<${result.url}>)`)
-          .join('\n')}`;
-        message.reply(out);
+    return [
+      {
+        name: 'FileBinder::Main',
+        once: false,
+        event: Events.MessageCreate,
+        listener: async (message: Message) => {
+          if (!message) return;
+          if (message.author.bot || message.attachments.size === 0) return;
+          if (!this.checkChannelId(message.channelId)) return;
+          const results = await this.saveAttachmentIntoDataDir(
+            message.attachments,
+            this.bindingDirPath,
+            this.urlPreset
+          );
+          this.printInfo(
+            `added ${results.length}-files. {${results
+              .map((result) => result.name)
+              .join(',')}}`
+          );
+          const out = `${results
+            .map((result) => `[${result.name}](<${result.url}>)`)
+            .join('\n')}`;
+          message.reply(out);
+        },
       },
-    };
-    const events: EventSet[] = [main];
-    return events;
+    ] as EventSet[];
   }
 }

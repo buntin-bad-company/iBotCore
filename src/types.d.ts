@@ -4,6 +4,7 @@ import {
   SlashCommandBuilder,
   ClientEvents,
   Awaitable,
+  Interaction,
 } from 'discord.js';
 
 declare global {
@@ -11,12 +12,22 @@ declare global {
     data: SlashCommandBuilder;
     execute: (i: CommandInteraction) => Promise<void>;
   };
-  export type EventSet = {
-    name?: string;
+
+  interface GenericEventSet<K extends keyof ClientEvents> {
+    name: string;
     once: boolean;
-    event: keyof ClientEvents;
-    listener: (...args: ClientEvents[event]) => Awaitable<void>;
-  };
+    event: K;
+    listener: (...args: ClientEvents[K]) => Awaitable<void>;
+  }
+
+  interface InteractionCreateEventSet
+    extends GenericEventSet<'interactionCreate'> {
+    listener: (interaction: Interaction) => Awaitable<void>;
+  }
+
+  export type EventSet =
+    | GenericEventSet<keyof ClientEvents>
+    | InteractionCreateEventSet;
   export type FileStatus = {
     exists: boolean;
     isDirectory: boolean;

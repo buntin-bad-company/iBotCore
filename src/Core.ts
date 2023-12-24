@@ -1,8 +1,10 @@
 import {
+  Awaitable,
   Client,
   Collection,
   Events,
   GatewayIntentBits,
+  Interaction,
   REST,
   Routes,
 } from 'discord.js';
@@ -48,12 +50,13 @@ export class Core extends Client {
       this.commands.set(command.data.name, command);
     }
   }
-  private addEvents(newEvents: EventSet[]) {
-    for (const event of newEvents) {
-      if (event.once) {
-        this.once(event.event, event.listener);
+  private addEvents(newEventSets: EventSet[]) {
+    for (const eventSet of newEventSets) {
+      const { event, listener, once } = eventSet;
+      if (once) {
+        this.once(event, listener as (...args: any[]) => Awaitable<void>);
       } else {
-        this.on(event.event, event.listener);
+        this.on(event, listener as (...args: any[]) => Awaitable<void>);
       }
     }
   }
@@ -105,7 +108,7 @@ export class Core extends Client {
     name: 'Core::EventHandler',
     once: false,
     event: Events.InteractionCreate,
-    listener: async (interaction) => {
+    listener: async (interaction: Interaction) => {
       if (!interaction.isCommand()) return;
       const { commandName } = interaction;
       const command = this.commands.get(commandName);

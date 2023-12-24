@@ -1,9 +1,18 @@
 {
   "cSpell.words": [
     "availables",
+    "DATETIME",
     "Divisiond",
     "Elysia",
     "elysiajs",
-    "ibotcore"
+    "htpasswd",
+    "ibotcore",
+    "mailconfig",
+    "mailconfiguration",
+    "mailparser",
+    "mailserver",
+    "modalsubmits",
+    "ronly",
+    "slashcommand"
   ]
 }
