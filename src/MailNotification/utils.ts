@@ -1,4 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
+import imap from 'imap';
+import { promisify } from 'node:util';
 import { Core } from '../Core';
 
 import { MNBotData, ServerConfig } from './types';
@@ -26,4 +28,30 @@ export const genMNEmbed = (
 
 export const transformServerConfig = (config: ServerConfig): string => {
   return `${config.user}@${config.host}<${config.user}.${config.host}>`;
+};
+
+export const testIMAPConnection = async (
+  host: string,
+  user: string,
+  password: string
+): Promise<boolean> => {
+  const imapConfig = new imap({
+    user: user,
+    password: password,
+    host: host,
+    port: 993, // IMAPのSSL接続用ポート、必要に応じて変更
+    tls: true,
+  });
+
+  const connect = promisify(imapConfig.connect).bind(imapConfig);
+  const end = promisify(imapConfig.end).bind(imapConfig);
+
+  try {
+    await connect();
+    await end();
+    return true; // 接続成功
+  } catch (error) {
+    console.error('IMAP接続エラー:', error);
+    return false; // 接続失敗
+  }
 };

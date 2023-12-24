@@ -1,7 +1,7 @@
 import Database, { Statement } from 'bun:sqlite';
 import fastq from 'fastq';
 import imap from 'imap';
-import { simpleParser, ParsedMail } from 'mailparser';
+import { simpleParser, ParsedMail, AddressObject } from 'mailparser';
 import {
   SlashCommandBuilder,
   ActionRowBuilder,
@@ -28,7 +28,7 @@ import * as util from '../utils';
 
 //local
 import { ServerConfig } from './types';
-import { transformServerConfig } from './utils';
+import { transformServerConfig, testIMAPConnection } from './utils';
 
 export class MailNotification extends Division {
   /* 
@@ -39,7 +39,8 @@ export class MailNotification extends Division {
   p:: division_data_dir: string
   */
   private online: boolean;
-  private _client: Elysia;
+  private _mailCronClient: Elysia;
+  private _mailQueueClient: Elysia;
   private maildb: Database;
   private serverdb: Database;
   private channeldb: Database;
@@ -52,12 +53,19 @@ export class MailNotification extends Division {
     this.online = false;
     this.mailDatabaseFilePath = `${this.division_data_dir}/mail.db`;
     this.serverDatabaseFilePath = `${this.division_data_dir}/server.db`;
-    this.channelDatabaseFilePath = `${this.division_data_dir}/channel.db`; // ファイルパスの設定
-    this._client = new Elysia().use(
+    this.channelDatabaseFilePath = `${this.division_data_dir}/channel.db`;
+    this._mailCronClient = new Elysia().use(
       cron({
         name: 'mail-notification',
-        pattern: '10,20,30,40,50 * * * * *', // Run every minute at 10, 20, 30, 40, 50 seconds
+        pattern: '0,20,40 * * * * *',
         run: this.mailNotification.bind(this) as () => void,
+      })
+    );
+    this._mailQueueClient = new Elysia().use(
+      cron({
+        name: 'mail-notification-queue',
+        pattern: '10,20,30,40,50 * * * * *',
+        run: this.mailNotificationQueueHandler.bind(this) as () => void,
       })
     );
     const maildbStatus = util.checkPathSync(this.mailDatabaseFilePath);
@@ -131,17 +139,37 @@ export class MailNotification extends Division {
         description.substring(0, Math.floor(maxDescriptionLength * 0.75)) +
         '...';
     }
+    embed.setTitle(mail.subject || '無題');
     embed.setDescription(description);
-
-    // その他の情報を embed に追加
     if (mail.date) embed.setTimestamp(mail.date);
     if (mail.to) {
-      const ary = mail.to;
-      if(instanceof ary === AddressObject)
-      const to = ary.map((item) => item.text).join(', ');
-      embed.addFields({ name: 'To', value: mail.to });
+      const isArray = Array.isArray(mail.to);
+      let ary: AddressObject[] = [];
+      if (!mail.to && isArray) {
+        const to = mail.to as AddressObject[];
+        ary.concat(to);
+      }
+      if (mail.to && !isArray) {
+        const to = mail.to as AddressObject;
+        ary.push(to);
+      }
+      const toString = ary.map((item) => item.text).join(', ');
+      embed.addFields({ name: 'To', value: toString });
     }
-    if (mail.cc) embed.addFields('CC', mail.cc.text?.toString());
+    if (mail.cc) {
+      const isArray = Array.isArray(mail.to);
+      let ary: AddressObject[] = [];
+      if (!mail.cc && isArray) {
+        const cc = mail.cc as AddressObject[];
+        ary.concat(cc);
+      }
+      if (mail.cc && !isArray) {
+        const cc = mail.cc as AddressObject;
+        ary.push(cc);
+      }
+      const toString = ary.map((item) => item.text).join(', ');
+      embed.addFields({ name: 'CC', value: toString });
+    }
     return embed;
   }
   //'maildb関連';
@@ -199,11 +227,11 @@ export class MailNotification extends Division {
                   return;
                 }
                 mailId = mail.messageId; // メールのIDを取得
-                // メールIDがデータベースに存在するかチェック
-                if (!this.checkMailIdExists(mailId)) {
-                  this.addMailId(mailId); // 存在しない場合、IDをデータベースに追加
-                  this.mailNotificationQueue.push(mail);
+                if (this.checkMailIdExists(mailId)) {
+                  return;
                 }
+                this.addMailId(mailId); // メールIDをデータベースに追加
+                this.mailNotificationQueue.push(mail); // メールをキューに追加
               });
             });
           });
@@ -234,6 +262,7 @@ export class MailNotification extends Division {
     const stmt = this.serverdb.prepare(`
     INSERT OR REPLACE INTO server_configs (host, user, password) VALUES (?, ?, ?)`);
     stmt.run(config.host, config.user, config.password);
+    return { host: config.host, user: config.user, password: config.password };
   }
   private get serverConfigs(): ServerConfig[] {
     const stmt = this.serverdb.prepare(
@@ -270,7 +299,40 @@ export class MailNotification extends Division {
     const rows = stmt.all() as { channel_id: string }[]; // 修正: as { channel_id: string }[]
     return rows.map((row) => row.channel_id);
   }
-
+  private mailNotificationExecAChunk(mails: ParsedMail[]) {
+    const embeds = mails.map((mail) => this.transformMailtoEmbed(mail));
+    const channels = this.core.channels.cache.filter((channel) =>
+      this.channelIds.includes(channel.id)
+    );
+    const message = {
+      content: 'iBotCore::MailNotification => Mail Notification',
+      embeds,
+    };
+    for (const channel of channels.values()) {
+      if (channel.type === ChannelType.GuildText) {
+        channel.send(message);
+      }
+    }
+  }
+  private mailNotificationQueueHandler() {
+    const length = this.mailNotificationQueue.length;
+    if (length === 0) {
+      return;
+    } else {
+      const mailChunks = util.splitArrayIntoChunks(
+        this.mailNotificationQueue,
+        10
+      );
+      for (const chunk of mailChunks) {
+        this.mailNotificationExecAChunk(chunk);
+        this.mailNotificationQueue = this.mailNotificationQueue.filter(
+          (mail) => {
+            return !chunk.includes(mail);
+          }
+        );
+      }
+    }
+  }
   //display関連
   private printf(str: string) {
     const message = `iBotCore::${this.name} => ${str}`;
@@ -333,13 +395,34 @@ export class MailNotification extends Division {
         const user = interaction.fields.getField('user').value;
         const password = interaction.fields.getField('password').value;
         const config: ServerConfig = { host, user, password };
-        this.addServerConfig(config);
-
-        this.printInfo(
-          `Modal:Submits:handler-> added a server config{${JSON.stringify(
-            config
-          )}}`
-        );
+        const added = this.addServerConfig(config);
+        interaction.deferReply({ ephemeral: true });
+        testIMAPConnection(host, user, password).then((result) => {
+          if (result) {
+            this.printInfo(
+              `Modal:Submits:handler-> added a server config{${JSON.stringify(
+                added
+              )}}`
+            );
+            this.setOnline();
+            interaction.editReply({
+              content: `[${user}@${host}](<${user}@${host}>) is online`,
+              ephemeral: true,
+            } as any);
+          } else {
+            this.printInfo(
+              `Modal:Submits:handler-> failed to add a server config{${JSON.stringify(
+                added
+              )}}`
+            );
+            interaction.editReply({
+              content:
+                'Mail server configuration failed' +
+                `${(added.user, added.host)}`,
+              ephemeral: true,
+            } as any);
+          }
+        });
 
         await interaction.reply({
           content: 'Mail server configuration saved',
