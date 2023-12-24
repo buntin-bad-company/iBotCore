@@ -19,22 +19,22 @@ export class FileBinder extends Division {
     this.urlPreset = urlPreset;
     this.bindingDirPath = path.join(this.division_data_dir, dataDir);
     if (!fs.existsSync(this.bindingDirPath)) {
-      throw new Error(`Please provide a valid data directory. [${ this.bindingDirPath }]`);
+      throw new Error(`Please provide a valid data directory. [${this.bindingDirPath}]`);
     } else {
-      this.printInfo(`Binding Data Dir exists: ${ this.bindingDirPath }`);
+      this.printInfo(`Binding Data Dir exists: ${this.bindingDirPath}`);
     }
     this.fileBinderDivDataPath = path.join(this.division_data_dir, botData);
     if (!fs.existsSync(this.fileBinderDivDataPath)) {
       throw new Error(
-        `Please provide a valid bot data file.If this run is first time, run src/FileBinder/genBotData.ts [${ this.fileBinderDivDataPath }]`
+        `Please provide a valid bot data file.If this run is first time, run src/FileBinder/genBotData.ts [${this.fileBinderDivDataPath}]`
       );
     } else {
-      this.printInfo(`Bot data file exists: ${ this.fileBinderDivDataPath }`);
+      this.printInfo(`Bot data file exists: ${this.fileBinderDivDataPath}`);
     }
 
     this.printInitMessage();
   }
-  private get data () {
+  private get data() {
     const data: FBBotData | null = util.readJsonFile(this.fileBinderDivDataPath);
     if (!data) {
       throw new Error(
@@ -43,46 +43,46 @@ export class FileBinder extends Division {
     }
     return data;
   }
-  private saveData (data: FBBotData) {
+  private saveData(data: FBBotData) {
     util.writeJsonFile(this.fileBinderDivDataPath, data);
   }
-  private checkChannelId (channelId: string) {
+  private checkChannelId(channelId: string) {
     const ids = this.data.monitors.map((monitor) => monitor.channelId);
     return ids.includes(channelId);
   }
-  private parseFilename (filename: string): { basename: string; ext: string } {
+  private parseFilename(filename: string): { basename: string; ext: string } {
     const parts = filename.split('.');
     const ext = parts.pop() || '???';
     const basename = parts.join('.');
     return { basename, ext };
   }
-  private resolveFilename (dataDir: string, filename: string): string {
+  private resolveFilename(dataDir: string, filename: string): string {
     let filepath = path.join(dataDir, filename);
     if (fs.existsSync(filepath)) {
       const { basename, ext } = this.parseFilename(filename);
-      filepath = path.join(dataDir, `${ basename }-${ Date.now().toString() }.${ ext }`);
+      filepath = path.join(dataDir, `${basename}-${Date.now().toString()}.${ext}`);
     }
     return filepath;
   }
-  private addMonitor (name: string, id: string): boolean {
+  private addMonitor(name: string, id: string): boolean {
     if (this.data.monitors.map((monitor) => monitor.channelId).includes(id)) return false;
     const newData = this.data;
     newData.monitors.push({ name, channelId: id });
     this.saveData(newData);
     return true;
   }
-  private removeMonitor (id: string) {
+  private removeMonitor(id: string) {
     const ifIncludes = this.data.monitors.map((monitor) => monitor.channelId).includes(id);
     const newData = this.data;
     newData.monitors = this.data.monitors.filter((monitor) => monitor.channelId !== id);
     this.saveData(newData);
     return ifIncludes;
   }
-  private get availableChannels () {
+  private get availableChannels() {
     const ids = this.data.monitors.map((monitor) => monitor.channelId);
-    return `Now monitoring channels \n ${ ids.map((id) => `<#${ id }>`).join('\n') }`;
+    return `Now monitoring channels \n ${ids.map(util.genChannelString).join('\n')}`;
   }
-  private async saveAttachmentIntoDataDir (
+  private async saveAttachmentIntoDataDir(
     attachments: Attachments,
     dataDir: string,
     URL_PRESET?: string
@@ -100,7 +100,7 @@ export class FileBinder extends Division {
     });
     return Promise.all(results);
   }
-  public get slashCommands () {
+  public get slashCommands() {
     const commands: Command[] = [];
     const fb_turn_on: Command = {
       data: new SlashCommandBuilder()
@@ -130,7 +130,7 @@ export class FileBinder extends Division {
     commands.push(fb_turn_off);
     return commands;
   }
-  public get events (): EventSet[] {
+  public get events(): EventSet[] {
     const main: EventSet = {
       name: 'FileBinder::Main',
       once: false,
@@ -140,8 +140,8 @@ export class FileBinder extends Division {
         if (message.author.bot || message.attachments.size === 0) return;
         if (!this.checkChannelId(message.channelId)) return;
         const results = await this.saveAttachmentIntoDataDir(message.attachments, this.bindingDirPath, this.urlPreset);
-        this.printInfo(`added ${ results.length }-files. {${ results.map(result => result.name).join(',') }}`);
-        const out = `${ results.map((result) => `[${ result.name }](<${ result.url }>)`).join('\n') }`;
+        this.printInfo(`added ${results.length}-files. {${results.map((result) => result.name).join(',')}}`);
+        const out = `${results.map((result) => `[${result.name}](<${result.url}>)`).join('\n')}`;
         message.reply(out);
       },
     };
