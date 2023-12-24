@@ -13,12 +13,16 @@ import {
   ModalActionRowComponentBuilder,
   Interaction,
 } from 'discord.js';
-
 import { Elysia } from 'elysia';
 import { cron } from '@elysiajs/cron';
+
+// global
 import { Division } from '../Division';
 import { Core } from '../Core';
 import * as util from '../utils';
+
+//local
+import { ServerConfig } from './types';
 
 export class MailNotification extends Division {
   /* 
@@ -30,13 +34,16 @@ export class MailNotification extends Division {
   */
   private online: boolean;
   private channelIds: string[];
-  private _client: Elysia | null;
-  private db: Database | null;
-  private databaseFilePath: string;
+  private _client: Elysia;
+  private maildb: Database;
+  private serverdb: Database;
+  private mailDatabaseFilePath: string;
+  private serverDatabaseFilePath: string;
   constructor(core: Core) {
     super(core);
     this.online = false;
-    this.databaseFilePath = `${this.division_data_dir}/mail.db`;
+    this.mailDatabaseFilePath = `${this.division_data_dir}/mail.maildb`;
+    this.serverDatabaseFilePath = `${this.division_data_dir}/server.db`;
     this.channelIds = [];
     this._client = new Elysia().use(
       cron({
@@ -45,61 +52,89 @@ export class MailNotification extends Division {
         run: this.mailNotification.bind(this),
       })
     );
-    this.db = new Database(this.databaseFilePath);
-    const status = util.checkPathSync(this.databaseFilePath);
-    if (!status.exists && !status.isFile) {
-      this.initDatabase();
+    const maildbStatus = util.checkPathSync(this.mailDatabaseFilePath);
+    const serverdbStatus = util.checkPathSync(this.serverDatabaseFilePath);
+    const mailCheck = !maildbStatus.exists && !maildbStatus.isFile;
+    const serverCheck = !serverdbStatus.exists && !serverdbStatus.isFile;
+    if (mailCheck || serverCheck) {
+      this.initDatabase(maildbStatus, serverdbStatus);
     }
+    this.maildb = new Database(this.mailDatabaseFilePath);
+    this.serverdb = new Database(this.serverDatabaseFilePath);
+
     this.printInitMessage();
   }
-  private initDatabase() {
-    const db = new Database(this.databaseFilePath);
-
-    // メールIDを格納するためのテーブルを作成する
-    db.exec(`CREATE TABLE IF NOT EXISTS mail_ids (
-  id INTEGER PRIMARY KEY,
-  mail_id TEXT NOT NULL,
-  checked_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+  private initDatabase(maildbStatus: FileStatus, serverdbStatus: FileStatus) {
+    //maildb
+    if (!maildbStatus.exists && !maildbStatus.isFile) {
+      this.maildb.exec(`
+    CREATE TABLE IF NOT EXISTS mail_ids (
+      id INTEGER PRIMARY KEY,
+      mail_id TEXT NOT NULL,
+      checked_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+    }
+    //serverdb
+    if (serverdbStatus.exists && serverdbStatus.isFile) {
+      this.serverdb = new Database(this.serverDatabaseFilePath);
+      this.serverdb.exec(`
+    CREATE TABLE IF NOT EXISTS server_configs (
+      id INTEGER PRIMARY KEY,
+      host TEXT NOT NULL,
+      user TEXT NOT NULL,
+      password TEXT NOT NULL
+    )
+  `);
+    }
   }
+  //'maildb関連';
   public addMailId(mailId: string): void {
-    if (this.db === null) throw new Error('Database is not initialized.');
-    const stmt: Statement = this.db.prepare(
+    const stmt: Statement = this.maildb.prepare(
       'INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)'
     );
     stmt.run(mailId);
   }
-
   public checkMailIdExists(mailId: string): boolean {
-    if (this.db === null) throw new Error('Database is not initialized.');
-    const stmt: Statement = this.db.prepare(
+    const stmt: Statement = this.maildb.prepare(
       'SELECT 1 FROM mail_ids WHERE mail_id = ?'
     );
     const result = stmt.get(mailId);
     return result !== undefined;
   }
-
   public removeMailId(mailId: string): void {
-    if (this.db === null) throw new Error('Database is not initialized.');
-    const stmt: Statement = this.db.prepare(
+    const stmt: Statement = this.maildb.prepare(
       'DELETE FROM mail_ids WHERE mail_id = ?'
     );
     stmt.run(mailId);
   }
-
   private mailNotification() {
     console.log('mail-notification');
   }
-
   private setOnline() {
     this.online = true;
   }
-
   private setOffline() {
     this.online = false;
   }
+  private addServerConfig(config: ServerConfig) {
+    const stmt = this.serverdb.prepare(`
+    INSERT OR REPLACE INTO server_configs (host, user, password) VALUES (?, ?, ?))`);
+    stmt.run(config.host, config.user, config.password);
+  }
+  private get serverConfigs(): ServerConfig[] {
+    const stmt = this.serverdb.prepare(
+      'SELECT host, user, password FROM server_configs'
+    );
+    const rows = stmt.all() as ServerConfig[];
+    return rows.map((row) => ({
+      host: row.host,
+      user: row.user,
+      password: row.password,
+    }));
+  }
 
+  //slashcommand,, this.channelIds関連
   private turnOn(channelId: string) {
     try {
       this.channelIds.push(channelId);
@@ -127,6 +162,7 @@ export class MailNotification extends Division {
       ifOnline: this.online,
     };
   }
+  //slashcommand,, modal,serverconfig関連
   private handleModalSubmitEventSet: InteractionCreateEventSet = {
     name: 'mn::slashcommand:modalsubmits:handler',
     once: false,
@@ -145,7 +181,6 @@ export class MailNotification extends Division {
       }
     },
   };
-
   public get slashCommands() {
     const mn_turn_on: Command = {
       data: new SlashCommandBuilder()

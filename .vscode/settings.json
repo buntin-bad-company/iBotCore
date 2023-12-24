@@ -9,10 +9,13 @@
     "ibotcore",
     "mailconfig",
     "mailconfiguration",
+    "maildb",
     "mailparser",
     "mailserver",
     "modalsubmits",
     "ronly",
+    "serverconfig",
+    "serverdb",
     "slashcommand"
   ]
 }
