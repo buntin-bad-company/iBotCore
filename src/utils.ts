@@ -35,6 +35,7 @@ export const readJsonFile = <T>(path: string): T | null => {
   }
 };
 
-export const writeJsonFile = (path: string, data: any) => fs.writeFileSync(path, JSON.stringify(data));
+export const writeJsonFile = (path: string, data: any) =>
+  fs.writeFileSync(path, JSON.stringify(data));
 
 export const genChannelString = (id: string | number) => `<#${id.toString()}>`;

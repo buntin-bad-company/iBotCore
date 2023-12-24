@@ -19,11 +19,8 @@ const fileBinder = new FileBinder(core);
 
 core.addDivision(fileBinder);
 
-
 if (ifRegister) {
   core.commandRegister();
 }
 
 await core.start();
-
-

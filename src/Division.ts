@@ -28,7 +28,9 @@ export abstract class Division {
     this.division_data_dir = `./data/${this.name}`;
     const dataDirStatus = checkPathSync(this.division_data_dir);
     if (!(dataDirStatus.exists && dataDirStatus.isDirectory)) {
-      throw new Error(`${this.name}::DataDir does not exist. [${this.division_data_dir}]`);
+      throw new Error(
+        `${this.name}::DataDir does not exist. [${this.division_data_dir}]`
+      );
     }
   }
   protected printInitMessage() {

@@ -1,4 +1,10 @@
-import { Client, CommandInteraction, SlashCommandBuilder, ClientEvents, Awaitable } from 'discord.js';
+import {
+  Client,
+  CommandInteraction,
+  SlashCommandBuilder,
+  ClientEvents,
+  Awaitable,
+} from 'discord.js';
 
 declare global {
   export type Command = {
@@ -11,5 +17,9 @@ declare global {
     event: keyof ClientEvents;
     listener: (...args: ClientEvents[event]) => Awaitable<void>;
   };
-  export type FileStatus = { exists: boolean; isDirectory: boolean; isFile: boolean };
+  export type FileStatus = {
+    exists: boolean;
+    isDirectory: boolean;
+    isFile: boolean;
+  };
 }

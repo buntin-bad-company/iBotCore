@@ -53,18 +53,24 @@ export class MailNotification extends Division {
 `);
   }
   public addMailId(mailId: string): void {
-    const stmt: Statement = this.db.prepare('INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)');
+    const stmt: Statement = this.db.prepare(
+      'INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)'
+    );
     stmt.run(mailId);
   }
 
   public checkMailIdExists(mailId: string): boolean {
-    const stmt: Statement = this.db.prepare('SELECT 1 FROM mail_ids WHERE mail_id = ?');
+    const stmt: Statement = this.db.prepare(
+      'SELECT 1 FROM mail_ids WHERE mail_id = ?'
+    );
     const result = stmt.get(mailId);
     return result !== undefined;
   }
 
   public removeMailId(mailId: string): void {
-    const stmt: Statement = this.db.prepare('DELETE FROM mail_ids WHERE mail_id = ?');
+    const stmt: Statement = this.db.prepare(
+      'DELETE FROM mail_ids WHERE mail_id = ?'
+    );
     stmt.run(mailId);
   }
 
@@ -143,7 +149,9 @@ export class MailNotification extends Division {
           .map(util.genChannelString)
           .join('\n')}`;
         await interaction.reply({
-          content: `${result.ifRemoved ? 'Success' : 'Fail'} that remove notification with this channel.\n${
+          content: `${
+            result.ifRemoved ? 'Success' : 'Fail'
+          } that remove notification with this channel.\n${
             result.ifOnline ? availables : 'Now offline'
           }`,
         });

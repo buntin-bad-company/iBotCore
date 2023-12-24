@@ -1,4 +1,11 @@
-import { Client, Collection, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
+import {
+  Client,
+  Collection,
+  Events,
+  GatewayIntentBits,
+  REST,
+  Routes,
+} from 'discord.js';
 import { Division } from './Division';
 
 export class Core extends Client {
@@ -28,8 +35,12 @@ export class Core extends Client {
     return this;
   }
   private addCommands(newCommands: Command[]) {
-    const reservedNamePool = new Set(newCommands.map((command) => command.data.name));
-    const ifDuplicate = newCommands.every((command) => !reservedNamePool.has(command.data.name));
+    const reservedNamePool = new Set(
+      newCommands.map((command) => command.data.name)
+    );
+    const ifDuplicate = newCommands.every(
+      (command) => !reservedNamePool.has(command.data.name)
+    );
     if (ifDuplicate) {
       throw new Error('command name duplicated');
     }
@@ -49,7 +60,9 @@ export class Core extends Client {
   public addDivision(div: Division) {
     //division追加処理
     const newDivName = div.name;
-    const reservedNamePool = new Set(this.divisions.map((division) => division.name));
+    const reservedNamePool = new Set(
+      this.divisions.map((division) => division.name)
+    );
     if (reservedNamePool.has(newDivName)) {
       throw new Error('division name duplicated');
     }
@@ -57,7 +70,9 @@ export class Core extends Client {
     this.divisions.set(key, div);
     const added = this.divisions.get(key);
     if (!added) {
-      throw new Error('??===seems These is that adding division for Core divisions collection is Fail.===??');
+      throw new Error(
+        '??===seems These is that adding division for Core divisions collection is Fail.===??'
+      );
     }
 
     //divisionのcommand,eventを登録
@@ -70,10 +85,15 @@ export class Core extends Client {
     try {
       const client = new REST().setToken(this.coreToken);
       const commands: Command[] = Array.from(this.commands.values());
-      console.log(`Started refreshing ${commands.length} application (/) commands.`);
-      const data = await client.put(Routes.applicationCommands(this.coreClientId), {
-        body: commands.map((command) => command.data.toJSON()),
-      });
+      console.log(
+        `Started refreshing ${commands.length} application (/) commands.`
+      );
+      const data = await client.put(
+        Routes.applicationCommands(this.coreClientId),
+        {
+          body: commands.map((command) => command.data.toJSON()),
+        }
+      );
       console.log('Successfully reloaded application (/) commands.');
       console.log(data);
     } catch (e) {
