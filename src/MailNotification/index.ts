@@ -59,7 +59,7 @@ export class MailNotification extends Division {
       cron({
         name: 'mail-notification',
         pattern: '0,20,40 * * * * *',
-        run: this.mailNotification.bind(this) as () => void,
+        run: this.mailNotificationMailCronHandler.bind(this) as () => void,
       })
     );
     this._mailQueueClient = new Elysia().use(
@@ -128,7 +128,7 @@ export class MailNotification extends Division {
     }
     this.channeldb = new Database(this.channelDatabaseFilePath);
   }
-  private transformMailtoEmbed(mail: ParsedMail): EmbedBuilder {
+  private transformMailToEmbed(mail: ParsedMail): EmbedBuilder {
     const embed = new EmbedBuilder().setTitle(mail.subject || '無題');
     embed.setAuthor({ name: mail.from?.text || '不明', iconURL: '', url: '' });
 
@@ -193,10 +193,30 @@ export class MailNotification extends Division {
     );
     stmt.run(mailId);
   }
-  //mail check main
-  private async mailNotification(_interaction?: CommandInteraction) {
+  //mail check main　意図的にinteractionは入れている(TypeScript制約による)
+  private async mailNotificationMailCronHandler(
+    _interaction?: CommandInteraction
+  ) {
+    let logMessage = `MailNotificationMailCronHandler => Started at ${new Date().toLocaleString()}`;
+    logMessage = this.printInfo(logMessage);
     const serverConfigs = this.serverConfigs;
-    for (const config of serverConfigs) {
+    logMessage = `MailNotificationMailCronHandler => serverConfigs loaded ${
+      serverConfigs.length
+    } counts ${new Date().toLocaleString()}`;
+    logMessage = this.printInfo(logMessage);
+
+    const length = serverConfigs.length;
+    for (let i = 0; i < length; i++) {
+      /* 
+      every address section
+      */
+      const config = serverConfigs[i];
+      logMessage = `MailNotificationMailCronHandler => exec ad ${
+        i + 1
+      }/${length} ${config.user}@${config.host} <${
+        config.password
+      }> ${new Date().toLocaleString()}`;
+      logMessage = this.printInfo(logMessage);
       const imapConfig = {
         user: config.user,
         password: config.password,
@@ -204,50 +224,82 @@ export class MailNotification extends Division {
         port: 993, // IMAPのデフォルトポート
         tls: true,
       };
-      const client = new imap(imapConfig);
-      client.once('ready', async () => {
-        client.openBox('INBOX', false, async (err, box) => {
-          if (err) throw err;
-          // 全てのメールを取得
-          const f = client.seq.fetch('1:' + box.messages.total, {
-            bodies: '',
-            struct: true,
-          });
-          f.on('message', (msg, seqno) => {
-            let mailId = '';
-            msg.on('body', (stream, info) => {
-              let buffer = '';
-              stream.on('data', (chunk) => {
-                buffer += chunk.toString('utf8');
-              });
-              stream.once('end', async () => {
-                // mailparserを使ってメールの内容を解析
-                const mail = await simpleParser(buffer);
-                if (mail.messageId === undefined) {
-                  this.printInfo('mail.messageId is undefined');
-                  return;
-                }
-                mailId = mail.messageId; // メールのIDを取得
-                if (this.checkMailIdExists(mailId)) {
-                  return;
-                }
-                this.addMailId(mailId); // メールIDをデータベースに追加
-                this.mailNotificationQueue.push(mail); // メールをキューに追加
+      const address = `${config.user}@${config.host}`;
+      try {
+        const client = new imap(imapConfig);
+        client.once('ready', async () => {
+          logMessage = `MailNotificationMailCronHandler:imap => ready ${address} ${new Date().toLocaleString()}`;
+          logMessage = this.printInfo(logMessage);
+          client.openBox('INBOX', false, async (err, box) => {
+            if (err) throw err;
+            logMessage = `MailNotificationMailCronHandler:imap => opened a box ${
+              box.messages.total
+            } counts ${address} ${new Date().toLocaleString()}`;
+            logMessage = this.printInfo(logMessage);
+            // 全てのメールを取得
+            const f = client.seq.fetch('1:' + box.messages.total, {
+              bodies: '',
+              struct: true,
+            });
+            f.on('message', (msg, seqno) => {
+              let mailId = '';
+              msg.on('body', (stream, info) => {
+                let buffer = '';
+                stream.on('data', (chunk) => {
+                  buffer += chunk.toString('utf8');
+                });
+                stream.once('end', async () => {
+                  // mailparserを使ってメールの内容を解析
+                  const mail = await simpleParser(buffer);
+                  if (mail.messageId === undefined) {
+                    logMessage = `MailNotificationMailCronHandler:imap => mail.messageId is undefined`;
+                    this.printInfo(logMessage);
+                    return;
+                  }
+                  mailId = mail.messageId; // メールのIDを取得
+                  if (this.checkMailIdExists(mailId)) {
+                    return;
+                  }
+                  this.addMailId(mailId); // メールIDをデータベースに追加
+                  this.mailNotificationQueue.push(mail); // メールをキューに追加
+                  logMessage = `MailNotificationMailCronHandler:imap => added a mail to queue ${
+                    mailId || 'undefined'
+                  } ${address} ${new Date().toLocaleString()}`;
+                  logMessage = this.printInfo(logMessage);
+                });
               });
             });
-          });
-          f.once('error', (err) => {
-            console.error('Fetch error: ' + err);
-          });
-          f.once('end', () => {
-            client.end();
+            f.once('error', (err) => {
+              logMessage = `MailNotificationMailCronHandler:imap => fetch error ${
+                err.message
+              } ${address} ${new Date().toLocaleString()}`;
+              logMessage = this.printInfo(logMessage);
+              console.error('Fetch error: ' + err);
+            });
+            f.once('end', () => {
+              client.end();
+              logMessage = `MailNotificationMailCronHandler:imap => fetch end ${address} ${new Date().toLocaleString()}`;
+              logMessage = this.printInfo(logMessage);
+            });
           });
         });
-      });
-      client.once('error', (err: any) => {
-        console.error(err);
-      });
-      client.connect();
+        client.once('error', (err: any) => {
+          logMessage = `MailNotificationMailCronHandler:imap => client error ${
+            err.message
+          } ${address} ${new Date().toLocaleString()}`;
+          logMessage = this.printInfo(logMessage);
+          console.error(err);
+        });
+        client.connect();
+      } catch (e) {
+        if (e instanceof Error) {
+          logMessage = `MailNotificationMailCronHandler:imap => error ${
+            e.message
+          } ${address} ${new Date().toLocaleString()}`;
+        } else {
+          console.log(e);
+        }
+      }
     }
   }
 
@@ -280,7 +332,10 @@ export class MailNotification extends Division {
     const stmt = this.serverdb.prepare(`
     DELETE FROM server_configs WHERE host = ? AND user = ? AND password = ?`);
     stmt.run(config.host, config.user, config.password);
-    this.printInfo(`removed a server config{${JSON.stringify(config)}}`);
+    let logMessage = `serverdb:removeServerConfig => removed a server config{${JSON.stringify(
+      config
+    )}}`;
+    this.printInfo(logMessage);
   }
 
   //channeldb関連
@@ -302,7 +357,7 @@ export class MailNotification extends Division {
     return rows.map((row) => row.channel_id);
   }
   private mailNotificationExecAChunk(mails: ParsedMail[]) {
-    const embeds = mails.map((mail) => this.transformMailtoEmbed(mail));
+    const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
     const channels = this.core.channels.cache.filter((channel) =>
       this.channelIds.includes(channel.id)
     );
@@ -316,24 +371,36 @@ export class MailNotification extends Division {
       }
     }
   }
+
+  //mailNotificationQueue関連 ログメッセージすべて完了。
   private mailNotificationQueueHandler() {
     const length = this.mailNotificationQueue.length;
     if (length === 0) {
+      let logMessage = `MailNotificationQueueHandler => No mail to notify ${new Date().toLocaleString()}`;
+      logMessage = this.printInfo(logMessage);
+
       return;
-    } else {
-      const mailChunks = util.splitArrayIntoChunks(
-        this.mailNotificationQueue,
-        10
-      );
-      for (const chunk of mailChunks) {
-        this.mailNotificationExecAChunk(chunk);
-        this.mailNotificationQueue = this.mailNotificationQueue.filter(
-          (mail) => {
-            return !chunk.includes(mail);
-          }
-        );
-      }
     }
+    let logMessage = `MailNotificationQueueHandler => ${length} mail notify ${new Date().toLocaleString()}`;
+    logMessage = this.printInfo(logMessage);
+
+    const mailChunks = util.splitArrayIntoChunks(
+      this.mailNotificationQueue,
+      10
+    );
+    logMessage = `MailNotificationQueueHandler => ${
+      mailChunks.length
+    } chunks going to execute ${new Date().toLocaleString()}`;
+    logMessage = this.printInfo(logMessage);
+
+    for (const chunk of mailChunks) {
+      this.mailNotificationExecAChunk(chunk);
+      this.mailNotificationQueue = this.mailNotificationQueue.filter((mail) => {
+        return !chunk.includes(mail);
+      });
+    }
+    logMessage = `MailNotificationQueueHandler => Done ${length} mails ${new Date().toLocaleString()}`;
+    logMessage = this.printInfo(logMessage);
   }
   //display関連
   private printf(str: string) {
@@ -385,7 +452,7 @@ export class MailNotification extends Division {
     }
   }
   //slashcommand,, modal,serverconfig関連
-  // モーダル提出イベントの処理
+  // モーダルSUBMITイベントの処理
   private handleModalSubmitEventSet: InteractionCreateEventSet = {
     name: 'mn::slashcommand:modalsubmits:handler',
     once: false,
@@ -573,7 +640,7 @@ export class MailNotification extends Division {
         const availableServers = `Now Available Servers:\n${this.serverConfigs
           .map(
             (config) =>
-              `${config.user}@${config.host}||password:"${config.password}"||`
+              `${config.user}@${config.host}  ||password:"${config.password}"||`
           )
           .join('\n')}`;
         await interaction.reply({
@@ -670,7 +737,7 @@ export class MailNotification extends Division {
       data: new SlashCommandBuilder()
         .setName('mn_fetch')
         .setDescription('Fetch mail'),
-      execute: this.mailNotification.bind(this),
+      execute: this.mailNotificationMailCronHandler.bind(this),
     };
     return [
       mn_turn_on,

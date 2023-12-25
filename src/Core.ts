@@ -110,10 +110,12 @@ export class Core extends Client {
     listener: async (interaction: Interaction) => {
       if (!interaction.isCommand()) return;
       const { commandName } = interaction;
+      console.log('iBotCore::Core:EventHandler->' + commandName + ' is called');
       const command = this.commands.get(commandName);
       if (!command) return;
       try {
-        command.execute(interaction);
+        await command.execute(interaction);
+        console.log('iBotCore::Core:EventHandler->' + commandName + ' is done');
       } catch (error) {
         console.error(error);
         interaction.reply({

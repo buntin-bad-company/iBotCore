@@ -42,11 +42,9 @@ export const testIMAPConnection = async (
     port: 993, // IMAPのSSL接続用ポート、必要に応じて変更
     tls: true,
   });
-
-  const connect = promisify(imapConfig.connect).bind(imapConfig);
-  const end = promisify(imapConfig.end).bind(imapConfig);
-
   try {
+    const connect = promisify(imapConfig.connect).bind(imapConfig);
+    const end = promisify(imapConfig.end).bind(imapConfig);
     await connect();
     await end();
     return true; // 接続成功
