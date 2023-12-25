@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+import ja from 'dayjs/locale/ja';
 import { Core } from './Core';
 import { checkPathSync } from './utils';
 
@@ -44,5 +46,10 @@ export abstract class Division {
     const message_ = `iBotCore::${this.name} => ${message}`;
     console.log(message_);
     return message_;
+  }
+  protected now(arg?: Date, template?: string) {
+    return dayjs(arg)
+      .locale(ja)
+      .format(template || 'YYYY/MM/DD HH:mm:ss:SSS');
   }
 }
