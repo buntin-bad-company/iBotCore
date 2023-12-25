@@ -43,8 +43,13 @@ export abstract class Division {
   abstract get slashCommands(): Command[];
   abstract get events(): EventSet[];
   protected printInfo(message: string) {
-    const message_ = `iBotCore::${this.name} => ${message}`;
+    const message_ = `iBotCore::${this.name} => ${message}  [${this.now()}]`;
     console.log(message_);
+    return message_;
+  }
+  protected printError(message: string) {
+    const message_ = `iBotCore::${this.name} => ${message} [${this.now()}]`;
+    console.error(message_);
     return message_;
   }
   protected now(arg?: Date, template?: string) {

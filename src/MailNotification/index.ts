@@ -1,25 +1,20 @@
 import Database, { Statement } from 'bun:sqlite';
-import fastq from 'fastq';
-import imap from 'imap';
-import ImapClientType from 'imap';
-import BoxType from 'imap';
 import { simpleParser, ParsedMail, AddressObject } from 'mailparser';
+import { ImapFlow } from 'imapflow';
 import {
   SlashCommandBuilder,
   ActionRowBuilder,
   ModalBuilder,
-  StringSelectMenuComponent,
   Interaction,
   TextInputBuilder,
   TextInputStyle,
   ModalActionRowComponentBuilder,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
   Events,
   CommandInteraction,
   ChannelType,
   EmbedBuilder,
   InteractionReplyOptions,
+  Collection,
 } from 'discord.js';
 import { Elysia } from 'elysia';
 import { cron } from '@elysiajs/cron';
@@ -32,6 +27,7 @@ import * as util from '../utils';
 //local
 import { ServerConfig } from './types';
 import { transformServerConfig, testIMAPConnection } from './utils';
+import imap from 'imap';
 
 export class MailNotification extends Division {
   /* 
@@ -50,27 +46,18 @@ export class MailNotification extends Division {
   private mailDatabaseFilePath: string;
   private serverDatabaseFilePath: string;
   private channelDatabaseFilePath: string;
+  private imapServerConnections: Collection<string, ImapFlow>;
   private mailNotificationQueue: ParsedMail[];
   constructor(core: Core) {
     super(core);
+    let logMessage = 'Constructor : Initializing Main Properties';
+    this.printInfo(logMessage);
+    logMessage = 'Constructor : Initializing Database Instance';
+    this.printInfo(logMessage);
     this.online = false;
     this.mailDatabaseFilePath = `${this.division_data_dir}/mail.db`;
     this.serverDatabaseFilePath = `${this.division_data_dir}/server.db`;
     this.channelDatabaseFilePath = `${this.division_data_dir}/channel.db`;
-    this._mailCronClient = new Elysia().use(
-      cron({
-        name: 'mail-notification',
-        pattern: '0,20,40 * * * * *',
-        run: this.mailNotificationMailCronHandler.bind(this) as () => void,
-      })
-    );
-    this._mailQueueClient = new Elysia().use(
-      cron({
-        name: 'mail-notification-queue',
-        pattern: '10,20,30,40,50 * * * * *',
-        run: this.mailNotificationQueueHandler.bind(this) as () => void,
-      })
-    );
     const maildbStatus = util.checkPathSync(this.mailDatabaseFilePath);
     const serverdbStatus = util.checkPathSync(this.serverDatabaseFilePath);
     const channeldbStatus = util.checkPathSync(this.channelDatabaseFilePath);
@@ -83,10 +70,48 @@ export class MailNotification extends Division {
     if (mailCheck || serverCheck || channelCheck) {
       this.initDatabase(maildbStatus, serverdbStatus, channeldbStatus);
     }
+    logMessage = 'Constructor : Initialized Database Instance';
+    this.printInfo(logMessage);
+
+    logMessage = 'Constructor : Initializing Imap Server Connections';
+    this.printInfo(logMessage);
+    this.imapServerConnections = new Collection();
+    this.mailNotificationQueue = [];
+    if (this.serverConfigs.length > 0) {
+      const logMessage = `Constructor => ${this.serverConfigs.length} server configs loaded`;
+      this.printInfo(logMessage);
+      this.initIMAPServers();
+    }
+    logMessage = 'Constructor : Initialized Imap Server Connections';
+    this.printInfo(logMessage);
+
+    logMessage = 'Constructor : Initializing Main Switches';
+    this.printInfo(logMessage);
     if (this.serverConfigs.length > 0 && this.channelIds.length > 0) {
       this.setOnline();
     }
-    this.mailNotificationQueue = [];
+    logMessage = this.printInfo(
+      `Constructor : ${this.online ? 'Online' : 'Offline'}`
+    );
+    logMessage = this.printInfo('Constructor : Initialized Main Switches');
+    logMessage = this.printInfo('Constructor : Initializing Cron Clients');
+    this._mailCronClient = new Elysia().use(
+      cron({
+        name: 'mail-notification',
+        pattern: '0,20,40 * * * * *',
+        run: this.mailCronHandler.bind(this) as () => void,
+      })
+    );
+    this._mailQueueClient = new Elysia().use(
+      cron({
+        name: 'mail-notification-queue',
+        pattern: '10,20,30,40,50 * * * * *',
+        run: this.queueHandler.bind(this) as () => void,
+      })
+    );
+    logMessage = this.printInfo('Constructor : Initialized Cron Clients');
+    logMessage = this.printInfo('Constructor : Done');
+    Bun.sleepSync(500);
 
     this.printInitMessage();
   }
@@ -130,6 +155,38 @@ export class MailNotification extends Division {
     }
     this.channeldb = new Database(this.channelDatabaseFilePath);
   }
+
+  private initIMAPServers() {
+    const serverConfigs = this.serverConfigs;
+    for (const config of serverConfigs) {
+      const { host, user, password } = config;
+      const address = `${user}@${host}`;
+      const key = `${host}:${user}`;
+      let logMessage = this.createLogMessage(
+        `initImapServers : Initializing IMAP Server key=${key}`,
+        address
+      );
+      this.printInfo(logMessage);
+      const imapServer = new ImapFlow({
+        host: host,
+        port: 993,
+        secure: true,
+        auth: {
+          user: address,
+          pass: password,
+        },
+      });
+      //TODO:imapサーバーのイベントの設定
+      this.imapServerConnections.set(key, imapServer);
+      logMessage = this.createLogMessage(
+        'initImapServers : Initialized',
+        address
+      );
+      this.printInfo(logMessage);
+    }
+  }
+  private reConnectIMAPConnection() {}
+
   private transformMailToEmbed(mail: ParsedMail): EmbedBuilder {
     const embed = new EmbedBuilder().setTitle(mail.subject || '無題');
     embed.setAuthor({ name: mail.from?.text || '不明', iconURL: '', url: '' });
@@ -199,73 +256,25 @@ export class MailNotification extends Division {
 ================================================================================================================================================
 */
   //mail check main　意図的にinteractionは入れている(TypeScript制約による)
-  private async mailNotificationMailCronHandler(
-    _interaction?: CommandInteraction
-  ) {
-    let logMessage = this.createLogMessage(
-      'MailNotificationMailCronHandler started'
-    );
+  private async mailCronHandler(_interaction?: CommandInteraction) {
+    let logMessage = 'mailCronHandler: started';
     this.printInfo(logMessage);
     const serverConfigs = this.serverConfigs;
-    logMessage = this.createLogMessage(
-      `Server configs loaded: ${serverConfigs.length} counts`
-    );
+    logMessage = `mailCronHandler: Server configs loaded: ${serverConfigs.length} counts`;
     this.printInfo(logMessage);
     const length = serverConfigs.length;
     for (let i = 0; i < length; i++) {
       const config = serverConfigs[i];
       const address = `${config.user}@${config.host}`;
       logMessage = this.createLogMessage(
-        `Executing for address ${address},${i + 1}/${length}`
+        'mailCronHandler: Executing for address',
+        address,
+        i + 1,
+        length
       );
       this.printInfo(logMessage);
-
-      try {
-        const imapConfig = {
-          user: config.user,
-          password: config.password,
-          host: config.host,
-          port: 993,
-          tls: true,
-        };
-        const client = new imap(imapConfig);
-
-        client.once('ready', async () => {
-          logMessage = this.createLogMessage('IMAP client ready', address);
-          this.printInfo(logMessage);
-
-          try {
-            client.openBox('INBOX', false, async (err, box) => {
-              if (err) {
-                throw new Error(`Error opening inbox: ${err.message}`);
-              }
-
-              logMessage = this.createLogMessage(
-                `Inbox opened with ${box.messages.total} messages`,
-                address
-              );
-              this.printInfo(logMessage);
-              this.processMailbox(client, box, address);
-            });
-          } catch (inboxError) {
-            this.handleError(inboxError, 'Error handling inbox', address);
-          }
-        });
-
-        client.once('error', (clientError) => {
-          this.handleError(clientError, 'IMAP client error', address);
-        });
-
-        client.connect();
-      } catch (connectionError) {
-        this.handleError(
-          connectionError,
-          'Error initializing IMAP client',
-          address
-        );
-      }
     }
-    logMessage = this.createLogMessage('MailNotificationMailCronHandler done');
+    logMessage = 'mailCronHandler: done';
     this.printInfo(logMessage);
   }
 
@@ -282,32 +291,8 @@ export class MailNotification extends Division {
     if (current !== undefined && total !== undefined) {
       logMessage += ` (${current}/${total})`;
     }
-    logMessage += ` [${this.now()}]`;
     return logMessage;
   }
-
-  private handleError(error: Error, context: string, address: string) {
-    const logMessage = this.createLogMessage(
-      `[ERROR]mailNotificationMailCronHandler::[${address}]{${context}: ${error.message}}`
-    );
-    this.printError(logMessage);
-    // Additional error handling logic can be added here
-  }
-
-  private processMailbox(
-    client: ImapClientType,
-    box: BoxType,
-    address: string
-  ) {
-    // Mailbox processing logic with detailed error handling and logging
-    // Implement the logic that was in the original code here
-  }
-
-  private printError(message: string) {
-    console.error(message);
-    // Additional error logging mechanism can be implemented
-  }
-
   /* 
 ================================================================================================================================================
 */
@@ -364,6 +349,32 @@ export class MailNotification extends Division {
     const rows = stmt.all() as { channel_id: string }[]; // 修正: as { channel_id: string }[]
     return rows.map((row) => row.channel_id);
   }
+
+  //mailNotificationQueue関連 ログメッセージすべて完了。
+  private queueHandler() {
+    const length = this.mailNotificationQueue.length;
+    if (length === 0) {
+      let logMessage = `queueHandler => No mail to notify`;
+      logMessage = this.printInfo(logMessage);
+      return;
+    }
+    let logMessage = `queueHandler => ${length} mail notify`;
+    logMessage = this.printInfo(logMessage);
+    const mailChunks = util.splitArrayIntoChunks(
+      this.mailNotificationQueue,
+      10
+    );
+    logMessage = `queueHandler => ${mailChunks.length} chunks going to execute`;
+    logMessage = this.printInfo(logMessage);
+    for (const chunk of mailChunks) {
+      this.mailNotificationExecAChunk(chunk);
+      this.mailNotificationQueue = this.mailNotificationQueue.filter((mail) => {
+        return !chunk.includes(mail);
+      });
+    }
+    logMessage = `queueHandler => Done ${length} mails`;
+    logMessage = this.printInfo(logMessage);
+  }
   private mailNotificationExecAChunk(mails: ParsedMail[]) {
     const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
     const channels = this.core.channels.cache.filter((channel) =>
@@ -379,49 +390,20 @@ export class MailNotification extends Division {
       }
     }
   }
-
-  //mailNotificationQueue関連 ログメッセージすべて完了。
-  private mailNotificationQueueHandler() {
-    const length = this.mailNotificationQueue.length;
-    if (length === 0) {
-      let logMessage = `MailNotificationQueueHandler => No mail to notify ${new Date().toLocaleString()}`;
-      logMessage = this.printInfo(logMessage);
-
-      return;
-    }
-    let logMessage = `MailNotificationQueueHandler => ${length} mail notify ${new Date().toLocaleString()}`;
-    logMessage = this.printInfo(logMessage);
-
-    const mailChunks = util.splitArrayIntoChunks(
-      this.mailNotificationQueue,
-      10
-    );
-    logMessage = `MailNotificationQueueHandler => ${
-      mailChunks.length
-    } chunks going to execute ${new Date().toLocaleString()}`;
-    logMessage = this.printInfo(logMessage);
-
-    for (const chunk of mailChunks) {
-      this.mailNotificationExecAChunk(chunk);
-      this.mailNotificationQueue = this.mailNotificationQueue.filter((mail) => {
-        return !chunk.includes(mail);
-      });
-    }
-    logMessage = `MailNotificationQueueHandler => Done ${length} mails ${new Date().toLocaleString()}`;
-    logMessage = this.printInfo(logMessage);
-  }
-  //display関連
-  private printf(str: string) {
-    const message = `iBotCore::${this.name} => ${str}`;
-    const pushMessage = this.printInfo(message);
-    const channels = this.core.channels.cache.filter((channel) =>
-      this.channelIds.includes(channel.id)
-    );
-    for (const channel of channels.values()) {
-      if (channel.type === ChannelType.GuildText) {
-        channel.send(pushMessage);
-      }
-    }
+  private discordInformation(showPassword?: boolean) {
+    const availableChannels = `Now Available Channels:\n${this.channelIds
+      .map(util.genChannelString)
+      .join('\n')}`;
+    const availableServers = `Now Available Servers:\n${this.serverConfigs
+      .map(
+        (config) =>
+          `${config.user}@${config.host}${
+            showPassword ? `:${config.password}` : ''
+          }`
+      )
+      .join('\n')}`;
+    const message = `${availableChannels}\n${availableServers}`;
+    return message;
   }
 
   //slashcommand,, this.channelIds関連
@@ -433,7 +415,9 @@ export class MailNotification extends Division {
       }
       return true;
     } catch (e) {
-      console.error(e);
+      this.printError(
+        `mailNotification::turnOn->${!e ? (e as any).message : 'undefined'}`
+      );
       return false;
     }
   }
@@ -556,10 +540,8 @@ export class MailNotification extends Division {
           name: `${config.user}@${config.host}`,
           value: `${config.host}:${config.user}`,
         }));
-
         // Log choices for human readability
         console.log(JSON.stringify(choices, null, 2));
-
         await interaction.respond(
           choices.filter((choice) =>
             choice.name.toLowerCase().includes(focusedValue.toLowerCase())
@@ -624,18 +606,8 @@ export class MailNotification extends Division {
         if (!interaction.isCommand()) return;
         const channelId = interaction.channelId;
         if (!channelId) interaction.reply('channelId is undefined');
-        const availableChannels = `Now Available Channels:\n${this.channelIds
-          .map(util.genChannelString)
-          .join('\n')}`;
-        const availableServers = `Now Available Servers:\n${this.serverConfigs
-          .map((config) => `${config.user}@${config.host}`)
-          .join('\n')}`;
         await interaction.reply({
-          content: `${
-            this.online
-              ? availableChannels + '\n' + availableServers
-              : 'Now offline'
-          }`,
+          content: `${this.online ? this.discordInformation() : 'Now offline'}`,
         });
       },
     };
@@ -647,20 +619,9 @@ export class MailNotification extends Division {
         if (!interaction.isCommand()) return;
         const channelId = interaction.channelId;
         if (!channelId) interaction.reply('channelId is undefined');
-        const availableChannels = `Now Available Channels:\n${this.channelIds
-          .map(util.genChannelString)
-          .join('\n')}`;
-        const availableServers = `Now Available Servers:\n${this.serverConfigs
-          .map(
-            (config) =>
-              `${config.user}@${config.host}  ||password:"${config.password}"||`
-          )
-          .join('\n')}`;
         await interaction.reply({
           content: `${
-            this.online
-              ? availableChannels + '\n' + availableServers
-              : 'Now offline'
+            this.online ? this.discordInformation(true) : 'Now offline'
           }`,
         });
       },
@@ -750,15 +711,15 @@ export class MailNotification extends Division {
       data: new SlashCommandBuilder()
         .setName('mn_fetch')
         .setDescription('Fetch mail'),
-      execute: this.mailNotificationMailCronHandler.bind(this),
+      execute: this.mailCronHandler.bind(this),
     };
     return [
       mn_turn_on,
       mn_turn_off,
-      mn_add_mailconfiguration,
-      mn_rm_mailconfiguration,
       mn_show_status,
       mn_show_status_all,
+      mn_add_mailconfiguration,
+      mn_rm_mailconfiguration,
       mn_fetch,
     ];
   }

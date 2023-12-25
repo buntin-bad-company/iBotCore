@@ -9,6 +9,7 @@
     "fastq",
     "htpasswd",
     "ibotcore",
+    "imapflow",
     "mailconfig",
     "mailconfiguration",
     "maildb",

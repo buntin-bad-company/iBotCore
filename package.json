@@ -18,11 +18,13 @@
     "@discordjs/builders": "^1.7.0",
     "@elysiajs/cron": "^0.8.0",
     "@types/imap": "^0.8.40",
+    "@types/imapflow": "^1.0.16",
     "@types/mailparser": "^3.4.4",
     "dayjs": "^1.11.10",
     "discord.js": "^14.14.1",
     "fastq": "^1.16.0",
     "imap": "^0.8.19",
+    "imapflow": "^1.0.147",
     "mailparser": "^3.6.5",
     "prettier": "^3.1.1"
   }
