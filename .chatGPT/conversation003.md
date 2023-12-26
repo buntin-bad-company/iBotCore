@@ -260,7 +260,7 @@ embed.setAuthor({ name: mail.from?.text || '不明', iconURL: '', url: '' });
 //'maildb関連';
 public addMailId(mailId: string): void {
 const stmt: Statement = this.maildb.prepare(
-'INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)'
+'INSERT OR IGNORE INTO mail*ids (mail_id) VALUES (?)'
 );
 stmt.run(mailId);
 }
@@ -277,9 +277,9 @@ const stmt: Statement = this.maildb.prepare(
 );
 stmt.run(mailId);
 }
-/_
+/*
 ================================================================================================================================================
-_/
+\_/
 //mail check main　意図的にinteractionは入れている(TypeScript制約による)
 private async mailNotificationMailCronHandler(
 \_interaction?: CommandInteraction
@@ -1138,7 +1138,7 @@ embed.setAuthor({ name: mail.from?.text || '不明', iconURL: '', url: '' });
 //'maildb関連';
 public addMailId(mailId: string): void {
 const stmt: Statement = this.maildb.prepare(
-'INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)'
+'INSERT OR IGNORE INTO mail*ids (mail_id) VALUES (?)'
 );
 stmt.run(mailId);
 }
@@ -1155,9 +1155,9 @@ const stmt: Statement = this.maildb.prepare(
 );
 stmt.run(mailId);
 }
-/_
+/*
 ================================================================================================================================================
-_/
+\_/
 //mail check main　意図的にinteractionは入れている(TypeScript制約による)
 private async mailNotificationMailCronHandler(
 \_interaction?: CommandInteraction
@@ -2322,7 +2322,7 @@ embed.setAuthor({ name: mail.from?.text || '不明', iconURL: '', url: '' });
 //'maildb関連';
 public addMailId(mailId: string): void {
 const stmt: Statement = this.maildb.prepare(
-'INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)'
+'INSERT OR IGNORE INTO mail*ids (mail_id) VALUES (?)'
 );
 stmt.run(mailId);
 }
@@ -2339,9 +2339,9 @@ const stmt: Statement = this.maildb.prepare(
 );
 stmt.run(mailId);
 }
-/_
+/*
 ================================================================================================================================================
-_/
+\_/
 //mail check main　意図的にinteractionは入れている(TypeScript制約による)
 private async mailNotificationMailCronHandler(
 \_interaction?: CommandInteraction
@@ -3169,7 +3169,7 @@ embed.setAuthor({ name: mail.from?.text || '不明', iconURL: '', url: '' });
 //'maildb関連';
 public addMailId(mailId: string): void {
 const stmt: Statement = this.maildb.prepare(
-'INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)'
+'INSERT OR IGNORE INTO mail*ids (mail_id) VALUES (?)'
 );
 stmt.run(mailId);
 }
@@ -3186,9 +3186,9 @@ const stmt: Statement = this.maildb.prepare(
 );
 stmt.run(mailId);
 }
-/_
+/*
 ================================================================================================================================================
-_/
+\_/
 //mail check main　意図的にinteractionは入れている(TypeScript制約による)
 private async mailNotificationMailCronHandler(
 \_interaction?: CommandInteraction
