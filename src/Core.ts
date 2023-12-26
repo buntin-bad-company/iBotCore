@@ -11,6 +11,7 @@ import {
 import { Division } from './Division';
 
 export class Core extends Client {
+  private static instance: Core;
   private coreToken: string;
   private coreClientId: string;
   /* 
@@ -31,10 +32,16 @@ export class Core extends Client {
         GatewayIntentBits.MessageContent,
       ],
     });
-    this.commands = new Collection();
     this.coreToken = token;
     this.coreClientId = clientId;
-    return this;
+    this.commands = new Collection();
+    this.divisions = new Collection();
+  }
+  public static getInstance(token: string, clientId: string): Core {
+    if (!Core.instance) {
+      Core.instance = new Core(token, clientId);
+    }
+    return Core.instance;
   }
   private addCommands(newCommands: Command[]) {
     const reservedNamePool = new Set(

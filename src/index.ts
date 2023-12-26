@@ -3,41 +3,44 @@ import { FileBinder } from './FileBinder';
 import { MailNotification } from './MailNotification';
 import { systemFirstRunnerEnvManager } from './utils';
 
-const { ifRegister, token, clientId, guildId } = systemFirstRunnerEnvManager();
-
 class IBotCore extends Core {
-  private static instancd: IBotCore;
   constructor() {
-    let logMessage = 'IBotCore:constructor : Initializing';
+    const { ifRegister, token, clientId, guildId } =
+      systemFirstRunnerEnvManager();
     if (!token || !clientId || !guildId) {
-      console.log('token', token);
-      console.log('clientId', clientId);
-      console.log('guildId', guildId);
       throw new Error('Please provide a valid token, client ID, and guild ID.');
     }
     super(token, clientId);
-    logMessage = this.log(logMessage);
-    const core = new Core(token, clientId);
-    const fileBinder = new FileBinder(core);
-    const mailNotification = new MailNotification(core);
 
-    core.addDivision(fileBinder);
-    core.addDivision(mailNotification);
+    // Edit HERE to add your own divisions
+    // const fileBinder = new FileBinder(this);
+    // const mailNotification = new MailNotification(this);
+    // this.addDivision(fileBinder);
+    // this.addDivision(mailNotification);
+    const fileBinder = new FileBinder(this);
+    const mailNotification = new MailNotification(this);
+    this.addDivision(fileBinder);
+    this.addDivision(mailNotification);
 
     if (ifRegister) {
-      core.commandRegister();
+      this.commandRegister();
     }
-    return this;
-  }
-
-  public static getInstance(): IBotCore {
-    if (!IBotCore.instance) {
-      IBotCore.instancd = new IBotCore();
-    }
-    return IBotCore.instancd;
   }
 
   public async start() {
     return super.start();
   }
 }
+
+// IBotCoreインスタンスの生成と開始
+const iBotCore = new IBotCore();
+iBotCore
+  .start()
+  .then(() => {
+    console.log('IBotCore started');
+  })
+  .catch((error) => {
+    console.error('Error starting IBotCore:', error);
+  });
+
+export default iBotCore;
