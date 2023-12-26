@@ -84,6 +84,11 @@ export class Core extends Client {
     return this;
   }
 
+  protected log(message: string) {
+    const msg = `iBotCore::Core => ${message}`;
+    console.log(msg);
+    return msg;
+  }
   public async commandRegister() {
     try {
       const client = new REST().setToken(this.coreToken);
@@ -139,7 +144,7 @@ export class Core extends Client {
 
   public async start() {
     this.addEvents([this.commandHandler, this.initEventSet]);
-    this.login(this.coreToken);
+    const loginResult = await this.login(this.coreToken);
     return this;
   }
 }
