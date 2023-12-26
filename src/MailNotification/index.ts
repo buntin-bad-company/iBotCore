@@ -671,8 +671,6 @@ export class MailNotification extends Division {
         .setDescription('Remove a mail server configuration'),
       execute: async (interaction) => {
         if (!interaction.isCommand()) return;
-
-        // モーダルを作成
         const modal = new ModalBuilder()
           .setCustomId('removeServerModal')
           .setTitle('Remove Mail Server Configuration');
