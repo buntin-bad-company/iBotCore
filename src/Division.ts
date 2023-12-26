@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import ja from 'dayjs/locale/ja';
 import { Core } from './Core';
 import { checkPathSync } from './utils';
+import { Message, MessageCreateOptions, MessagePayload } from 'discord.js';
 
 export abstract class Division {
   /*
@@ -51,6 +52,35 @@ export abstract class Division {
     const message_ = `iBotCore::${this.name} => ${message} [${this.now()}]`;
     console.error(message_);
     return message_;
+  }
+  protected async generalBroadcast(
+    ids: string[],
+    options: string | MessagePayload | MessageCreateOptions
+  ): Promise<(Message<boolean> | undefined)[]> {
+    const messages: (Message<boolean> | undefined)[] = [];
+    for (const id of ids) {
+      let logMessage = '';
+      try {
+        const channel = this.core.channels.cache.get(id);
+        if (!channel) {
+          logMessage = `constructor::generalBroadcast : Channel not found. [${id}]`;
+          logMessage = this.printError(logMessage);
+          throw new Error(logMessage);
+        } else if (!channel.isTextBased()) {
+          logMessage = `constructor::generalBroadcast : Channel is not text based. current:[${channel.type.toString()}] [${id}]`;
+          this.printError(logMessage);
+          throw new Error(logMessage);
+        }
+        const message = await channel.send(options);
+        messages.push(message);
+      } catch (e: any) {
+        this.printError(
+          `constructor::generalBroadcast : Error occurred. [${id}] ${e.text}`
+        );
+        messages.push(undefined);
+      }
+    }
+    return messages;
   }
   protected now(arg?: Date, template?: string) {
     return dayjs(arg)

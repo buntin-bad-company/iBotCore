@@ -390,6 +390,37 @@ export class MailNotification extends Division {
       }
     }
   }
+  private async discordNotification(content?: string, mails?: ParsedMail[]) {
+    const channelIds = this.channelIds;
+    let logMessage = '';
+    if (!content && !mails) {
+      logMessage = `discordNotification => No content and mail`;
+      logMessage = this.printInfo(logMessage);
+    } else if (content && !mails) {
+      logMessage = `discordNotification => No mail`;
+      logMessage = this.printInfo(logMessage);
+    } else if (!!mails) {
+      logMessage = `discordNotification => ${mails.length} mails`;
+      logMessage = this.printInfo(logMessage);
+      const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
+      const channels = this.core.channels.cache.filter((channel) =>
+        this.channelIds.includes(channel.id)
+      );
+      const result = await this.generalBroadcast(channelIds, {
+        content: content ? content : 'generalBroadcast => Mail Notification',
+        embeds,
+      });
+      const resultCount = result.reduce((prev, current) => {
+        if (!current) return prev;
+        return prev + 1;
+      }, 0);
+      logMessage = `discordNotification => ${resultCount} mails sent`;
+      logMessage = this.printInfo(logMessage);
+    } else {
+      this.printError('discordNotification => Something wrong' + content);
+      this.printError('discordNotification => Something wrong' + mails);
+    }
+  }
   private discordInformation(showPassword?: boolean) {
     const availableChannels = `Now Available Channels:\n${this.channelIds
       .map(util.genChannelString)

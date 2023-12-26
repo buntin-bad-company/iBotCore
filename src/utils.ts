@@ -51,3 +51,25 @@ export const splitArrayIntoChunks = <T>(
   }
   return result;
 };
+
+type GeneralConfig = {
+  ifRegister: boolean;
+  token?: string;
+  clientId?: string;
+  guildId?: string;
+};
+
+export const systemFirstRunnerEnvManager = (): GeneralConfig => {
+  const argv = Bun.argv;
+
+  const ifRegister = argv.includes('--register') || argv.includes('-r');
+  const token = Bun.env.TOKEN;
+  const clientId = Bun.env.CLIENT_ID;
+  const guildId = Bun.env.GUILD_ID;
+  return {
+    ifRegister,
+    token,
+    clientId,
+    guildId,
+  };
+};

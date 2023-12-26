@@ -1,13 +1,10 @@
 import { Core } from './Core';
 import { FileBinder } from './FileBinder';
 import { MailNotification } from './MailNotification';
+import { systemFirstRunnerEnvManager } from './utils';
 
-const argv = Bun.argv;
+const { ifRegister, token, clientId, guildId } = systemFirstRunnerEnvManager();
 
-const ifRegister = argv.includes('--register') || argv.includes('-r');
-const token = Bun.env.TOKEN;
-const clientId = Bun.env.CLIENT_ID;
-const guildId = Bun.env.GUILD_ID;
 if (!token || !clientId || !guildId) {
   console.log('token', token);
   console.log('clientId', clientId);
