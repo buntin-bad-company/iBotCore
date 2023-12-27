@@ -146,6 +146,15 @@ export class Core extends Client {
       event: Events.ClientReady,
       listener: async () => {
         console.log(`----------\nLogged in as ${this.user?.tag}!\n----------`);
+        // const channels = Array.from(this.channels.cache.values());
+        // const textChannels = channels.filter(
+        //   (channel) => channel.type === ChannelType.GuildText
+        // );
+        // console.log('----------\nTextChannels\n----------');
+        // for (const channel of textChannels) {
+        //   console.log(JSON.stringify(channel, null, 2));
+        // }
+        // console.log('--------------------');
       },
     };
   }
