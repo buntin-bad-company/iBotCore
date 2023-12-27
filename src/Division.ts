@@ -1,8 +1,14 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import ja from 'dayjs/locale/ja';
 import { Core } from './Core';
 import { checkPathSync } from './utils';
 import { Message, MessageCreateOptions, MessagePayload } from 'discord.js';
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.locale('ja');
+dayjs.tz.setDefault('Asia/Tokyo');
 
 export abstract class Division {
   /*

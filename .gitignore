@@ -139,3 +139,7 @@ data/FileBinder/bot_data.json
 ## ibotcore mailnotification
 data/MailNotification/*
 !data/MailNotification/.gitkeep
+
+## ibotcore socialUtility
+data/SocialUtility/*
+!data/SocialUtility/.gitkeep

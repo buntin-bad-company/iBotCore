@@ -1,5 +1,6 @@
 import {
   Awaitable,
+  ChannelType,
   Client,
   Collection,
   Events,
@@ -11,15 +12,15 @@ import {
 import { Division } from './Division';
 
 export class Core extends Client {
-  private static instance: Core;
-  private coreToken: string;
-  private coreClientId: string;
+  public static instance: Core;
+  protected coreToken: string;
+  protected coreClientId: string;
   /* 
   Main client
   */
   //現状、Coreで全体で保持しているのはDivisionとコマンド（最初に登録するため。）で、EventはDivision追加時にやることにするが、まだ。
-  private divisions = new Collection<string, Division>(); //iBotCoreに登録されているdivisionコレクション
-  private commands: Collection<string, Command>; //iBotCore全体のコマンドコレクション
+  protected divisions = new Collection<string, Division>(); //iBotCoreに登録されているdivisionコレクション
+  protected commands: Collection<string, Command>; //iBotCore全体のコマンドコレクション
   constructor(token: string, clientId: string) {
     //TODO:インテンツについても、Divisionから取得し必要最低限（Set）で始めるようにする。
     super({
@@ -43,7 +44,7 @@ export class Core extends Client {
     }
     return Core.instance;
   }
-  private addCommands(newCommands: Command[]) {
+  protected addCommands(newCommands: Command[]) {
     const reservedNamePool = new Set(
       newCommands.map((command) => command.data.name)
     );
@@ -57,7 +58,7 @@ export class Core extends Client {
       this.commands.set(command.data.name, command);
     }
   }
-  private addEvents(newEventSets: EventSet[]) {
+  protected addEvents(newEventSets: EventSet[]) {
     for (const eventSet of newEventSets) {
       const { event, listener, once } = eventSet;
       if (once) {
@@ -115,7 +116,7 @@ export class Core extends Client {
     }
   }
 
-  private commandHandler: EventSet = {
+  protected commandHandler: EventSet = {
     name: 'Core::EventHandler',
     once: false,
     event: Events.InteractionCreate,
@@ -138,15 +139,26 @@ export class Core extends Client {
     },
   };
 
-  private get initEventSet(): EventSet {
+  protected get initEventSet(): EventSet {
     return {
       name: 'Core::Ready',
       once: true,
       event: Events.ClientReady,
       listener: async () => {
-        console.log(`Logged in as ${this.user?.tag}!`);
+        console.log(`----------\nLogged in as ${this.user?.tag}!\n----------`);
       },
     };
+  }
+
+  protected filteredChannels(ids: string[]) {
+    const channels = Array.from(this.channels.cache.values());
+    const textChannels = channels.filter(
+      (channel) => channel.type === ChannelType.GuildText
+    );
+    const filterdChannels = textChannels.filter((channel) => {
+      return ids.includes(channel.id);
+    });
+    return filterdChannels;
   }
 
   public async start() {

@@ -1,9 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import IBotCore from '../src/index';
+import { IBotCore } from '../src/index';
 import { FileBinder } from '../src/FileBinder';
 import { MailNotification } from '../src/MailNotification';
 import { systemFirstRunnerEnvManager } from '../src/utils';
+import { ChannelType } from 'discord.js';
 
 const main = async () => {
   const { ifRegister, token, clientId, guildId } =
@@ -20,6 +21,8 @@ const main = async () => {
     console.log('guildId', guildId);
     throw new Error('Please provide a valid token, client ID, and guild ID.');
   }
+  const iBotCore = await new IBotCore().start();
+  expect(iBotCore).toBeInstanceOf(IBotCore);
 };
 
 test('index.test.ts', main);

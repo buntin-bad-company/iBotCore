@@ -1,9 +1,11 @@
+import { ChannelType } from 'discord.js';
 import { Core } from './Core';
 import { FileBinder } from './FileBinder';
 import { MailNotification } from './MailNotification';
 import { systemFirstRunnerEnvManager } from './utils';
+import { SocialUtility } from './SocialUtility';
 
-class IBotCore extends Core {
+export class IBotCore extends Core {
   constructor() {
     const { ifRegister, token, clientId, guildId } =
       systemFirstRunnerEnvManager();
@@ -19,8 +21,10 @@ class IBotCore extends Core {
     // this.addDivision(mailNotification);
     const fileBinder = new FileBinder(this);
     const mailNotification = new MailNotification(this);
+    const socialUtility = new SocialUtility(this);
     this.addDivision(fileBinder);
     this.addDivision(mailNotification);
+    this.addDivision(socialUtility);
 
     if (ifRegister) {
       this.commandRegister();
@@ -28,7 +32,8 @@ class IBotCore extends Core {
   }
 
   public async start() {
-    return super.start();
+    const constructor = await super.start();
+    return constructor;
   }
 }
 
@@ -42,5 +47,3 @@ iBotCore
   .catch((error) => {
     console.error('Error starting IBotCore:', error);
   });
-
-export default iBotCore;

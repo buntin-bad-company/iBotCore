@@ -1,0 +1,76 @@
+import Database, { Statement } from 'bun:sqlite';
+import { simpleParser, ParsedMail, AddressObject } from 'mailparser';
+import { ImapFlow } from 'imapflow';
+import {
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ModalBuilder,
+  Interaction,
+  TextInputBuilder,
+  TextInputStyle,
+  ModalActionRowComponentBuilder,
+  Events,
+  CommandInteraction,
+  ChannelType,
+  EmbedBuilder,
+  InteractionReplyOptions,
+  Collection,
+} from 'discord.js';
+import { Elysia } from 'elysia';
+import { cron } from '@elysiajs/cron';
+
+// global
+import { Division } from '../Division';
+import { Core } from '../Core';
+import * as util from '../utils';
+
+//local
+
+export class Division01 extends Division {
+  /* 
+  p::name:string
+  ronly::core:Core
+  p::commands:Command[]
+  p::eventSets:EventSet[]
+  p:: division_data_dir: string
+  */
+  constructor(core: Core) {
+    super(core);
+    let logMessage = 'Constructor: SocialUtility Online';
+    this.printInfo(logMessage);
+    this.printInitMessage();
+  }
+  /* 
+================================================================================================================================================
+*/
+
+  /* 
+================================================================================================================================================
+*/
+  //Division制約 slashCommands get - ():Command[]
+  public get slashCommands(): Command[] {
+    const mn_turn_on: Command = {
+      data: new SlashCommandBuilder()
+        .setName('mn_turn_on')
+        .setDescription('Turn on mail notification with this channel.'),
+      execute: async (interaction) => {
+        if (!interaction.isCommand()) return;
+        const channelId = interaction.channelId;
+        if (!channelId) interaction.reply('channelId is undefined');
+        const result = this.turnOn(channelId);
+        await interaction.reply({
+          content: `${
+            result ? 'Success' : 'Failed'
+          } to turn on mail notification.\nNow Available Channels:\n${this.channelIds
+            .map(util.genChannelString)
+            .join('\n')}`,
+        });
+      },
+    };
+    return [mn_turn_on];
+  }
+  //Division制約 events get - ():EventSet[]
+  public get events(): EventSet[] {
+    return [];
+  }
+}
