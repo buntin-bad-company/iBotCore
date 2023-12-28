@@ -1,6 +1,6 @@
 import Database, { Statement } from 'bun:sqlite';
-import { ParsedMail, AddressObject } from 'mailparser';
-import { ImapFlow } from 'imapflow';
+import { ParsedMail, AddressObject, simpleParser } from 'mailparser';
+import { ImapFlow, FetchQueryObject } from 'imapflow';
 import {
   SlashCommandBuilder,
   ActionRowBuilder,
@@ -115,7 +115,6 @@ export class MailNotification extends Division {
 
     this.printInitMessage();
   }
-
   private initIMAPServers() {
     const serverConfigs = this.serverConfigs;
     for (const config of serverConfigs) {
@@ -133,12 +132,52 @@ export class MailNotification extends Division {
           pass: password,
         },
       });
-      //TODO:imapサーバーのイベントの設定
       this.imapServerConnections.set(key, imapServer);
       logMessage = this.createLogMessage('initImapServers : Initialized', address);
       this.printInfo(logMessage);
+      const t = imapServer.eventNames.bind(imapServer).toString();
+      console.log(t);
+      imapServer.on('mail', (mailId) => {
+        this.handleNewMail(imapServer, mailId);
+      });
     }
   }
+
+  private async handleNewMail(imapServer: ImapFlow, mailId: string) {
+    let logMessage = 'handleNewMail : started';
+    logMessage = this.printInfo(logMessage);
+    try {
+      const fetchQueryObject: FetchQueryObject = {
+        uid: true,
+        envelope: true,
+        size: true,
+        bodyParts: ['text', 'html'],
+        source: true,
+      }; // メールデータをパース
+      const mailData = await imapServer.fetchOne(mailId, fetchQueryObject);
+      const parsedMail = await simpleParser(mailData.source);
+      // メールIDがDBに存在するか確認
+      const mailIdExists = this.checkMailIdExists(parsedMail.messageId || 'undefined');
+      const mailIdExistsMessage = `handleNewMail : Mail ID exists : ${parsedMail.messageId}`;
+      const mailIdNotExistsMessage = `handleNewMail : Mail ID not exists : ${parsedMail.messageId}`;
+      logMessage = this.printInfo(mailIdExists ? mailIdExistsMessage : mailIdNotExistsMessage);
+
+      // メールIDがDBに存在する場合は何もしない
+      if (mailIdExists) {
+        logMessage = this.createLogMessage('handleNewMail : Mail ID exists', parsedMail.from?.text);
+        logMessage = this.printInfo(logMessage);
+        return;
+      }
+      // メールIDをDBに追加
+      this.addMailId(mailId);
+      this.mailNotificationQueue.push(parsedMail);
+      logMessage = this.createLogMessage('handleNewMail : Mail ID added', parsedMail.from?.text);
+      logMessage = this.printInfo(logMessage);
+    } catch (error) {
+      console.error('Error handling new mail:', error);
+    }
+  }
+
   private reConnectIMAPConnection() {}
 
   private transformMailToEmbed(mail: ParsedMail): EmbedBuilder {
