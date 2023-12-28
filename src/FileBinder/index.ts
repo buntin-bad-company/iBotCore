@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import path from 'path';
 import { Events, Interaction, Message, SlashCommandBuilder } from 'discord.js';
 
@@ -106,7 +106,7 @@ export class FileBinder extends Division {
       const filename = attachment.name;
       const filepath = this.resolveFilename(dataDir, filename);
       const buffer = await (await fetch(attachment.url)).arrayBuffer();
-      fs.writeFileSync(filepath, buffer);
+      Bun.write(filepath, buffer);
       if (!URL_PRESET) {
         return { url: filepath, name: filename };
       }

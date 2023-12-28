@@ -1,23 +1,4 @@
-import Database, { Statement } from 'bun:sqlite';
-import { simpleParser, ParsedMail, AddressObject } from 'mailparser';
-import { ImapFlow } from 'imapflow';
-import {
-  SlashCommandBuilder,
-  ActionRowBuilder,
-  ModalBuilder,
-  Interaction,
-  TextInputBuilder,
-  TextInputStyle,
-  ModalActionRowComponentBuilder,
-  Events,
-  CommandInteraction,
-  ChannelType,
-  EmbedBuilder,
-  InteractionReplyOptions,
-  Collection,
-} from 'discord.js';
-import { Elysia } from 'elysia';
-import { cron } from '@elysiajs/cron';
+import { SlashCommandBuilder } from 'discord.js';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
