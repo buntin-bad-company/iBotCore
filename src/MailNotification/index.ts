@@ -281,23 +281,28 @@ export class MailNotification extends Division {
     this.printInfo('purgeDB : Purged DB [client : online , API Mode]');
   }
   public async disclosureDatabases() {
-    let logMessage = 'disclosureDatabases: Running shell commands for database info';
+    let logMessage = 'disclosureDatabases: Running queries for database info';
     this.printInfo(logMessage);
-
     try {
       $.verbose = false;
-      // ここで必要なシェルコマンドを実行します
-      const maildbInfo = await $`ls -lh ${this.mailDatabaseFilePath}`;
-      const serverdbInfo = await $`ls -lh ${this.serverDatabaseFilePath}`;
-      const channeldbInfo = await $`ls -lh ${this.channelDatabaseFilePath}`;
+      let dbResults = '';
+      // Query maildb
+      const maildbResults = this.maildb.prepare('SELECT * FROM mail_ids').all();
+      dbResults += 'MailDB Results:\n' + JSON.stringify(maildbResults, null, 2) + '\n';
+      // Query serverdb
+      const serverdbResults = this.serverdb.prepare('SELECT * FROM server_configs').all();
+      dbResults += 'ServerDB Results:\n' + JSON.stringify(serverdbResults, null, 2) + '\n';
+      // Query channeldb
+      const channeldbResults = this.channeldb.prepare('SELECT * FROM channel_ids').all();
+      dbResults += 'ChannelDB Results:\n' + JSON.stringify(channeldbResults, null, 2) + '\n';
+
       logMessage = this.printInfo('disclosureDatabases: Done');
-      logMessage = ['', maildbInfo.stdout, serverdbInfo.stdout, channeldbInfo.stdout].join('\n');
-      logMessage = this.printInfo(logMessage);
+      logMessage = this.printInfo(dbResults);
     } catch (e) {
       if (e instanceof Error) {
-        logMessage = `disclosureDatabases: ${e.message}`;
+        logMessage = this.printError(`mailNotification::turnOn->${e.message}`);
       } else {
-        logMessage = `disclosureDatabases: ${e}`;
+        logMessage = this.printError(`mailNotification::turnOn->${e}`);
       }
       logMessage = this.printError(logMessage);
     } finally {
