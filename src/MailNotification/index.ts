@@ -29,7 +29,7 @@ import * as util from '../utils';
 
 //local
 import { ServerConfig } from './types';
-import { transformServerConfig, testIMAPConnection } from './utils';
+import { transformServerConfig } from './utils';
 
 export class MailNotification extends Division {
   /* 
@@ -236,15 +236,74 @@ export class MailNotification extends Division {
     const length = serverConfigs.length;
     for (let i = 0; i < length; i++) {
       const config = serverConfigs[i];
-      const address = `${config.user}@${config.host}`;
-      logMessage = this.createLogMessage('mailCronHandler: Executing for address', address, i + 1, length);
+      const { host, user, password } = config;
+      const address = `${user}@${host}`;
+      const key = `${host}:${user}`;
+      logMessage = this.createLogMessage(`mailCronHandler: Checking mail for ${address}`, address, i + 1, length);
       this.printInfo(logMessage);
-      const key = `${config.host}:${config.user}`;
       const imapServer = this.imapServerConnections.get(key);
       if (!imapServer) {
         logMessage = this.createLogMessage('mailCronHandler: imapServer not found', address, i + 1, length);
         this.printInfo(logMessage);
         continue;
+      }
+      await imapServer.connect();
+      const fetchQueryObject: FetchQueryObject = {
+        uid: true,
+        envelope: true,
+        size: true,
+        bodyParts: ['text', 'html'],
+        source: true,
+      };
+      const mailIds = await imapServer.search({ seen: false });
+      const mailIdsLength = mailIds.length;
+      logMessage = this.createLogMessage(
+        `mailCronHandler: ${mailIdsLength} mails found for ${address}`,
+        address,
+        i + 1,
+        length
+      );
+      this.printInfo(logMessage);
+      for (let j = 0; j < mailIdsLength; j++) {
+        const mailId = mailIds[j];
+        logMessage = this.createLogMessage(
+          `mailCronHandler: Checking mail ${mailId} for ${address}`,
+          address,
+          j + 1,
+          mailIdsLength
+        );
+        this.printInfo(logMessage);
+        const mailData = await imapServer.fetchOne(mailId.toString(), fetchQueryObject);
+        const parsedMail = await simpleParser(mailData.source);
+        const mailIdExists = this.checkMailIdExists(parsedMail.messageId || 'undefined');
+        const mailIdExistsMessage = `mailCronHandler: Mail ID exists : ${parsedMail.messageId}`;
+        const mailIdNotExistsMessage = `mailCronHandler: Mail ID not exists : ${parsedMail.messageId}`;
+        logMessage = this.createLogMessage(
+          mailIdExists ? mailIdExistsMessage : mailIdNotExistsMessage,
+          address,
+          j + 1,
+          mailIdsLength
+        );
+        this.printInfo(logMessage);
+        if (mailIdExists) {
+          logMessage = this.createLogMessage(
+            `mailCronHandler: Mail ID exists : ${parsedMail.messageId}`,
+            address,
+            j + 1,
+            mailIdsLength
+          );
+          this.printInfo(logMessage);
+          continue;
+        }
+        this.addMailId(mailId.toString());
+        this.mailNotificationQueue.push(parsedMail);
+        logMessage = this.createLogMessage(
+          `mailCronHandler: Mail ID added : ${parsedMail.messageId}`,
+          address,
+          j + 1,
+          mailIdsLength
+        );
+        this.printInfo(logMessage);
       }
     }
     logMessage = 'mailCronHandler: done';
@@ -542,32 +601,33 @@ export class MailNotification extends Division {
     event: Events.InteractionCreate,
     listener: async (interaction: Interaction) => {
       if (!interaction.isModalSubmit()) return;
+      //Modal Submitイベントの処理
       if (interaction.customId === 'mailserverModal') {
+        await interaction.deferUpdate();
+        await interaction.followUp('Mail server configuration running test ...');
         // ユーザー名、ホスト名、パスワードを取得
         const host = interaction.fields.getField('host').value;
         const user = interaction.fields.getField('user').value;
         const password = interaction.fields.getField('password').value;
         const config: ServerConfig = { host, user, password };
         const added = this.addServerConfig(config);
-        const result = await testIMAPConnection(host, user, password);
-        if (result) {
+        if (added.user === user) {
           this.printInfo(`Modal:Submits:handler-> added a server config{${JSON.stringify(added)}}`);
           this.setOnline();
-          interaction.editReply({
+          await interaction.editReply({
             content: `[${user}@${host}](<${user}@${host}>) is online`,
             ephemeral: true,
           } as never);
         } else {
           this.printInfo(`Modal:Submits:handler-> failed to add a server config{${JSON.stringify(added)}}`);
-          interaction.editReply({
+          await interaction.editReply({
             content: 'Mail server configuration failed' + `${(added.user, added.host)}`,
             ephemeral: true,
           } as never);
         }
-        await interaction.reply({
-          content: 'Mail server configuration saved',
-          ephemeral: true,
-        });
+        // await interaction.editReply({
+        //   content: 'Mail server configuration saved',
+        // });
       }
       if (interaction.customId === 'removeServerModal') {
         let message: InteractionReplyOptions = {
