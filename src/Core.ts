@@ -42,8 +42,7 @@ export class Core extends Client {
   public getCore() {
     if (!Core.instance) {
       Core.getInstance(this.coreToken, this.coreClientId);
-      if (!Core.instance)
-        throw new Error('[ERROR]Core:getCore => Core is not initialized');
+      if (!Core.instance) throw new Error('[ERROR]Core:getCore => Core is not initialized');
     }
     return Core.instance;
   }
@@ -55,12 +54,8 @@ export class Core extends Client {
     return Core.instance;
   }
   protected addCommands(newCommands: Command[]) {
-    const reservedNamePool = new Set(
-      newCommands.map((command) => command.data.name)
-    );
-    const ifDuplicate = newCommands.every(
-      (command) => !reservedNamePool.has(command.data.name)
-    );
+    const reservedNamePool = new Set(newCommands.map((command) => command.data.name));
+    const ifDuplicate = newCommands.every((command) => !reservedNamePool.has(command.data.name));
     if (ifDuplicate) {
       throw new Error('command name duplicated');
     }
@@ -81,9 +76,7 @@ export class Core extends Client {
   public addDivision(div: Division) {
     //division追加処理
     const newDivName = div.name;
-    const reservedNamePool = new Set(
-      this.divisions.map((division) => division.name)
-    );
+    const reservedNamePool = new Set(this.divisions.map((division) => division.name));
     if (reservedNamePool.has(newDivName)) {
       throw new Error('division name duplicated');
     }
@@ -91,9 +84,7 @@ export class Core extends Client {
     this.divisions.set(key, div);
     const added = this.divisions.get(key);
     if (!added) {
-      throw new Error(
-        '??===seems These is that adding division for Core divisions collection is Fail.===??'
-      );
+      throw new Error('??===seems These is that adding division for Core divisions collection is Fail.===??');
     }
 
     //divisionのcommand,eventを登録
@@ -119,15 +110,10 @@ export class Core extends Client {
     try {
       const client = new REST().setToken(this.coreToken);
       const commands: Command[] = Array.from(this.commands.values());
-      this.log(
-        `Started refreshing ${commands.length} application (/) commands.`
-      );
-      const data = await client.put(
-        Routes.applicationCommands(this.coreClientId),
-        {
-          body: commands.map((command) => command.data.toJSON()),
-        }
-      );
+      this.log(`Started refreshing ${commands.length} application (/) commands.`);
+      const data = await client.put(Routes.applicationCommands(this.coreClientId), {
+        body: commands.map((command) => command.data.toJSON()),
+      });
       this.log('Successfully reloaded application (/) commands.');
     } catch (e) {
       this.error(e as string);
@@ -179,9 +165,7 @@ export class Core extends Client {
 
   protected filteredChannels(ids: string[]) {
     const channels = Array.from(this.channels.cache.values());
-    const textChannels = channels.filter(
-      (channel) => channel.type === ChannelType.GuildText
-    );
+    const textChannels = channels.filter((channel) => channel.type === ChannelType.GuildText);
     const filteredChannels = textChannels.filter((channel) => {
       return ids.includes(channel.id);
     });

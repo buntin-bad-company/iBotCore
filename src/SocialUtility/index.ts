@@ -37,9 +37,7 @@ export class SocialUtility extends Division {
   //Division制約 slashCommands get - ():Command[]
   public get slashCommands(): Command[] {
     const su_time: Command = {
-      data: new SlashCommandBuilder()
-        .setName('su_time')
-        .setDescription('Check Server is going well.'),
+      data: new SlashCommandBuilder().setName('su_time').setDescription('Check Server is going well.'),
       execute: async (interaction) => {
         if (!interaction.isCommand()) return;
         const channelId = interaction.channelId;

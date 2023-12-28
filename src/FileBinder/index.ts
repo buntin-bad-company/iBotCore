@@ -19,9 +19,7 @@ export class FileBinder extends Division {
     this.urlPreset = urlPreset;
     this.bindingDirPath = path.join(this.division_data_dir, dataDir);
     if (!fs.existsSync(this.bindingDirPath)) {
-      throw new Error(
-        `Please provide a valid data directory. [${this.bindingDirPath}]`
-      );
+      throw new Error(`Please provide a valid data directory. [${this.bindingDirPath}]`);
     } else {
       this.printInfo(`Binding Data Dir exists: ${this.bindingDirPath}`);
     }
@@ -37,13 +35,10 @@ export class FileBinder extends Division {
     this.printInitMessage();
   }
   private get data() {
-    const data: FBBotData | null = util.readJsonFile(
-      this.fileBinderDivDataPath
-    );
+    const data: FBBotData | null = util.readJsonFile(this.fileBinderDivDataPath);
     if (!data) {
       throw new Error(
-        'iBotCore::FileBinder -> division data dir or json is not loadable.' +
-          this.fileBinderDivDataPath
+        'iBotCore::FileBinder -> division data dir or json is not loadable.' + this.fileBinderDivDataPath
       );
     }
     return data;
@@ -65,37 +60,27 @@ export class FileBinder extends Division {
     let filepath = path.join(dataDir, filename);
     if (fs.existsSync(filepath)) {
       const { basename, ext } = this.parseFilename(filename);
-      filepath = path.join(
-        dataDir,
-        `${basename}-${Date.now().toString()}.${ext}`
-      );
+      filepath = path.join(dataDir, `${basename}-${Date.now().toString()}.${ext}`);
     }
     return filepath;
   }
   private addMonitor(name: string, id: string): boolean {
-    if (this.data.monitors.map((monitor) => monitor.channelId).includes(id))
-      return false;
+    if (this.data.monitors.map((monitor) => monitor.channelId).includes(id)) return false;
     const newData = this.data;
     newData.monitors.push({ name, channelId: id });
     this.saveData(newData);
     return true;
   }
   private removeMonitor(id: string) {
-    const ifIncludes = this.data.monitors
-      .map((monitor) => monitor.channelId)
-      .includes(id);
+    const ifIncludes = this.data.monitors.map((monitor) => monitor.channelId).includes(id);
     const newData = this.data;
-    newData.monitors = this.data.monitors.filter(
-      (monitor) => monitor.channelId !== id
-    );
+    newData.monitors = this.data.monitors.filter((monitor) => monitor.channelId !== id);
     this.saveData(newData);
     return ifIncludes;
   }
   private get availableChannels() {
     const ids = this.data.monitors.map((monitor) => monitor.channelId);
-    return `Now monitoring channels \n ${ids
-      .map(util.genChannelString)
-      .join('\n')}`;
+    return `Now monitoring channels \n ${ids.map(util.genChannelString).join('\n')}`;
   }
   private async saveAttachmentIntoDataDir(
     attachments: Attachments,
@@ -120,34 +105,25 @@ export class FileBinder extends Division {
     const fb_turn_on: Command = {
       data: new SlashCommandBuilder()
         .setName('fb_turn_on')
-        .setDescription(
-          'iBotCore::FileBinder\nturn on file binding with this channel'
-        ),
+        .setDescription('iBotCore::FileBinder\nturn on file binding with this channel'),
       execute: async (interaction) => {
         const channel = interaction.channel;
         if (!channel || channel.type !== 0) return;
         const { id, name } = channel;
         const result = this.addMonitor(name, id);
-        const message =
-          (result ? 'Successfully set' : 'Already set') +
-          '\n' +
-          this.availableChannels;
+        const message = (result ? 'Successfully set' : 'Already set') + '\n' + this.availableChannels;
         await interaction.reply(message);
       },
     };
     commands.push(fb_turn_on);
     const fb_turn_off: Command = {
-      data: new SlashCommandBuilder()
-        .setName('fb_turn_off')
-        .setDescription('unset this channel for file binding'),
+      data: new SlashCommandBuilder().setName('fb_turn_off').setDescription('unset this channel for file binding'),
       execute: async (interaction) => {
         const channel = interaction.channel;
         if (!channel || channel.type !== 0) return;
         const { id, name } = channel;
         const result = this.removeMonitor(id);
-        const message =
-          (result ? 'Successfully unset' : 'Already unset') +
-          this.availableChannels;
+        const message = (result ? 'Successfully unset' : 'Already unset') + this.availableChannels;
         await interaction.reply(message);
       },
     };
@@ -169,14 +145,8 @@ export class FileBinder extends Division {
             this.bindingDirPath,
             this.urlPreset
           );
-          this.printInfo(
-            `added ${results.length}-files. {${results
-              .map((result) => result.name)
-              .join(',')}}`
-          );
-          const out = `${results
-            .map((result) => `[${result.name}](<${result.url}>)`)
-            .join('\n')}`;
+          this.printInfo(`added ${results.length}-files. {${results.map((result) => result.name).join(',')}}`);
+          const out = `${results.map((result) => `[${result.name}](<${result.url}>)`).join('\n')}`;
           message.reply(out);
         },
       },

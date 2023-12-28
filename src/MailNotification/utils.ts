@@ -8,11 +8,7 @@ export const genServerConfigEmbed = (serverConfig: ServerConfig) => {
   const { host, user } = serverConfig;
 };
 
-export const genMNEmbed = (
-  title: string,
-  description: string,
-  bot_data: MNBotData
-) => {
+export const genMNEmbed = (title: string, description: string, bot_data: MNBotData) => {
   const embed = new EmbedBuilder()
     .setTitle(title)
     .setDescription(description)
@@ -30,11 +26,7 @@ export const transformServerConfig = (config: ServerConfig): string => {
   return `${config.user}@${config.host}<${config.user}.${config.host}>`;
 };
 
-export const testIMAPConnection = async (
-  host: string,
-  user: string,
-  password: string
-): Promise<boolean> => {
+export const testIMAPConnection = async (host: string, user: string, password: string): Promise<boolean> => {
   const imapConfig = new imap({
     user: user,
     password: password,

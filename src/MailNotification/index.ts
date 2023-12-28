@@ -91,9 +91,7 @@ export class MailNotification extends Division {
     if (this.serverConfigs.length > 0 && this.channelIds.length > 0) {
       this.setOnline();
     }
-    logMessage = this.printInfo(
-      `Constructor : ${this.online ? 'Online' : 'Offline'}`
-    );
+    logMessage = this.printInfo(`Constructor : ${this.online ? 'Online' : 'Offline'}`);
     logMessage = this.printInfo('Constructor : Initialized Main Switches');
     logMessage = this.printInfo('Constructor : Initializing Cron Clients');
     this._mailCronClient = new Elysia().use(
@@ -116,11 +114,7 @@ export class MailNotification extends Division {
 
     this.printInitMessage();
   }
-  private initDatabase(
-    maildbStatus: FileStatus,
-    serverdbStatus: FileStatus,
-    channeldbStatus: FileStatus
-  ) {
+  private initDatabase(maildbStatus: FileStatus, serverdbStatus: FileStatus, channeldbStatus: FileStatus) {
     //maildb
     if (!maildbStatus.exists || !maildbStatus.isFile) {
       this.maildb.exec(`
@@ -163,10 +157,7 @@ export class MailNotification extends Division {
       const { host, user, password } = config;
       const address = `${user}@${host}`;
       const key = `${host}:${user}`;
-      let logMessage = this.createLogMessage(
-        `initImapServers : Initializing IMAP Server key=${key}`,
-        address
-      );
+      let logMessage = this.createLogMessage(`initImapServers : Initializing IMAP Server key=${key}`, address);
       this.printInfo(logMessage);
       const imapServer = new ImapFlow({
         host: host,
@@ -179,10 +170,7 @@ export class MailNotification extends Division {
       });
       //TODO:imapサーバーのイベントの設定
       this.imapServerConnections.set(key, imapServer);
-      logMessage = this.createLogMessage(
-        'initImapServers : Initialized',
-        address
-      );
+      logMessage = this.createLogMessage('initImapServers : Initialized', address);
       this.printInfo(logMessage);
     }
   }
@@ -196,9 +184,7 @@ export class MailNotification extends Division {
     const maxDescriptionLength = 4096; // Discord の embed の最大文字数
     let description = mail.text || '';
     if (description.length > maxDescriptionLength * 0.75) {
-      description =
-        description.substring(0, Math.floor(maxDescriptionLength * 0.75)) +
-        '...';
+      description = description.substring(0, Math.floor(maxDescriptionLength * 0.75)) + '...';
     }
     embed.setTitle(mail.subject || '無題');
     embed.setDescription(description);
@@ -235,22 +221,16 @@ export class MailNotification extends Division {
   }
   //'maildb関連';
   public addMailId(mailId: string): void {
-    const stmt: Statement = this.maildb.prepare(
-      'INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)'
-    );
+    const stmt: Statement = this.maildb.prepare('INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)');
     stmt.run(mailId);
   }
   public checkMailIdExists(mailId: string): boolean {
-    const stmt: Statement = this.maildb.prepare(
-      'SELECT 1 FROM mail_ids WHERE mail_id = ?'
-    );
+    const stmt: Statement = this.maildb.prepare('SELECT 1 FROM mail_ids WHERE mail_id = ?');
     const result = stmt.get(mailId);
     return result !== undefined;
   }
   public removeMailId(mailId: string): void {
-    const stmt: Statement = this.maildb.prepare(
-      'DELETE FROM mail_ids WHERE mail_id = ?'
-    );
+    const stmt: Statement = this.maildb.prepare('DELETE FROM mail_ids WHERE mail_id = ?');
     stmt.run(mailId);
   }
   /* 
@@ -267,22 +247,12 @@ export class MailNotification extends Division {
     for (let i = 0; i < length; i++) {
       const config = serverConfigs[i];
       const address = `${config.user}@${config.host}`;
-      logMessage = this.createLogMessage(
-        'mailCronHandler: Executing for address',
-        address,
-        i + 1,
-        length
-      );
+      logMessage = this.createLogMessage('mailCronHandler: Executing for address', address, i + 1, length);
       this.printInfo(logMessage);
       const key = `${config.host}:${config.user}`;
       const imapServer = this.imapServerConnections.get(key);
       if (!imapServer) {
-        logMessage = this.createLogMessage(
-          'mailCronHandler: imapServer not found',
-          address,
-          i + 1,
-          length
-        );
+        logMessage = this.createLogMessage('mailCronHandler: imapServer not found', address, i + 1, length);
         this.printInfo(logMessage);
         continue;
       }
@@ -291,12 +261,7 @@ export class MailNotification extends Division {
     this.printInfo(logMessage);
   }
 
-  private createLogMessage(
-    message: string,
-    address?: string,
-    current?: number,
-    total?: number
-  ): string {
+  private createLogMessage(message: string, address?: string, current?: number, total?: number): string {
     let logMessage = `${message}`;
     if (address) {
       logMessage += ` for ${address}`;
@@ -312,9 +277,7 @@ export class MailNotification extends Division {
   //division properties
   private setOnline() {
     this.online = true;
-    this.discordNotification(
-      'iBotCore::MailNotification : SetOnline => Server Started'
-    );
+    this.discordNotification('iBotCore::MailNotification : SetOnline => Server Started');
   }
   private setOffline() {
     this.online = false;
@@ -327,9 +290,7 @@ export class MailNotification extends Division {
     return { host: config.host, user: config.user, password: config.password };
   }
   private get serverConfigs(): ServerConfig[] {
-    const stmt = this.serverdb.prepare(
-      'SELECT host, user, password FROM server_configs'
-    );
+    const stmt = this.serverdb.prepare('SELECT host, user, password FROM server_configs');
     const rows = stmt.all() as ServerConfig[];
     return rows.map((row) => ({
       host: row.host,
@@ -341,23 +302,17 @@ export class MailNotification extends Division {
     const stmt = this.serverdb.prepare(`
     DELETE FROM server_configs WHERE host = ? AND user = ? AND password = ?`);
     stmt.run(config.host, config.user, config.password);
-    let logMessage = `serverdb:removeServerConfig => removed a server config{${JSON.stringify(
-      config
-    )}}`;
+    let logMessage = `serverdb:removeServerConfig => removed a server config{${JSON.stringify(config)}}`;
     this.printInfo(logMessage);
   }
 
   //channeldb関連
   private addChannelId(channelId: string): void {
-    const stmt = this.channeldb.prepare(
-      'INSERT INTO channel_ids (channel_id) VALUES (?)'
-    );
+    const stmt = this.channeldb.prepare('INSERT INTO channel_ids (channel_id) VALUES (?)');
     stmt.run(channelId);
   }
   private removeChannelId(channelId: string): void {
-    const stmt = this.channeldb.prepare(
-      'DELETE FROM channel_ids WHERE channel_id = ?'
-    );
+    const stmt = this.channeldb.prepare('DELETE FROM channel_ids WHERE channel_id = ?');
     stmt.run(channelId);
   }
   private get channelIds(): string[] {
@@ -376,10 +331,7 @@ export class MailNotification extends Division {
     }
     let logMessage = `queueHandler => ${length} mail notify`;
     logMessage = this.printInfo(logMessage);
-    const mailChunks = util.splitArrayIntoChunks(
-      this.mailNotificationQueue,
-      10
-    );
+    const mailChunks = util.splitArrayIntoChunks(this.mailNotificationQueue, 10);
     logMessage = `queueHandler => ${mailChunks.length} chunks going to execute`;
     logMessage = this.printInfo(logMessage);
     for (const chunk of mailChunks) {
@@ -394,9 +346,7 @@ export class MailNotification extends Division {
   private mailNotificationExecAChunk(mails: ParsedMail[]) {
     if (mails.length === 0) {
       const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
-      const channels = this.core.channels.cache.filter((channel) =>
-        this.channelIds.includes(channel.id)
-      );
+      const channels = this.core.channels.cache.filter((channel) => this.channelIds.includes(channel.id));
       const message = {
         content: 'iBotCore::MailNotification => Mail Notification',
         embeds,
@@ -443,9 +393,7 @@ export class MailNotification extends Division {
       logMessage = `discordNotification => ${mails.length} mails`;
       logMessage = this.printInfo(logMessage);
       const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
-      const channels = this.core.channels.cache.filter((channel) =>
-        this.channelIds.includes(channel.id)
-      );
+      const channels = this.core.channels.cache.filter((channel) => this.channelIds.includes(channel.id));
       result = await this.generalBroadcast(channelIds, {
         content: content ? content : 'generalBroadcast => Mail Notification',
         embeds,
@@ -462,16 +410,9 @@ export class MailNotification extends Division {
     }
   }
   private discordInformation(showPassword?: boolean) {
-    const availableChannels = `Now Available Channels:\n${this.channelIds
-      .map(util.genChannelString)
-      .join('\n')}`;
+    const availableChannels = `Now Available Channels:\n${this.channelIds.map(util.genChannelString).join('\n')}`;
     const availableServers = `Now Available Servers:\n${this.serverConfigs
-      .map(
-        (config) =>
-          `${config.user}@${config.host}${
-            showPassword ? `:${config.password}` : ''
-          }`
-      )
+      .map((config) => `${config.user}@${config.host}${showPassword ? `:${config.password}` : ''}`)
       .join('\n')}`;
     const message = `${availableChannels}\n${availableServers}`;
     return message;
@@ -485,9 +426,7 @@ export class MailNotification extends Division {
       }
       return true;
     } catch (e) {
-      this.printError(
-        `mailNotification::turnOn->${!e ? (e as any).message : 'undefined'}`
-      );
+      this.printError(`mailNotification::turnOn->${!e ? (e as any).message : 'undefined'}`);
       return false;
     }
   }
@@ -530,26 +469,16 @@ export class MailNotification extends Division {
         const added = this.addServerConfig(config);
         const result = await testIMAPConnection(host, user, password);
         if (result) {
-          this.printInfo(
-            `Modal:Submits:handler-> added a server config{${JSON.stringify(
-              added
-            )}}`
-          );
+          this.printInfo(`Modal:Submits:handler-> added a server config{${JSON.stringify(added)}}`);
           this.setOnline();
           interaction.editReply({
             content: `[${user}@${host}](<${user}@${host}>) is online`,
             ephemeral: true,
           } as any);
         } else {
-          this.printInfo(
-            `Modal:Submits:handler-> failed to add a server config{${JSON.stringify(
-              added
-            )}}`
-          );
+          this.printInfo(`Modal:Submits:handler-> failed to add a server config{${JSON.stringify(added)}}`);
           interaction.editReply({
-            content:
-              'Mail server configuration failed' +
-              `${(added.user, added.host)}`,
+            content: 'Mail server configuration failed' + `${(added.user, added.host)}`,
             ephemeral: true,
           } as any);
         }
@@ -570,9 +499,7 @@ export class MailNotification extends Division {
           this.removeServerConfig({ user, host, password });
         } catch (e) {
           if (e instanceof Error) {
-            this.printInfo(
-              `Modal:Submits:handler-> failed to remove a server config${e.message}`
-            );
+            this.printInfo(`Modal:Submits:handler-> failed to remove a server config${e.message}`);
             message = {
               content: 'Mail server configuration failed to remove',
               ephemeral: true,
@@ -596,15 +523,10 @@ export class MailNotification extends Division {
     once: false,
     event: Events.InteractionCreate,
     listener: async (interaction) => {
-      if (
-        interaction.isAutocomplete() &&
-        interaction.commandName === 'mn_rm_mailconfig'
-      ) {
+      if (interaction.isAutocomplete() && interaction.commandName === 'mn_rm_mailconfig') {
         const focusedValue = interaction.options.getFocused();
         const serverConfigs = this.serverConfigs;
-        const answer = serverConfigs.find((config) =>
-          `${config.host}:${config.user}`.includes(focusedValue)
-        );
+        const answer = serverConfigs.find((config) => `${config.host}:${config.user}`.includes(focusedValue));
         console.log(answer);
         const choices = serverConfigs.map((config) => ({
           name: `${config.user}@${config.host}`,
@@ -613,9 +535,7 @@ export class MailNotification extends Division {
         // Log choices for human readability
         console.log(JSON.stringify(choices, null, 2));
         await interaction.respond(
-          choices.filter((choice) =>
-            choice.name.toLowerCase().includes(focusedValue.toLowerCase())
-          )
+          choices.filter((choice) => choice.name.toLowerCase().includes(focusedValue.toLowerCase()))
         );
       }
     },
@@ -653,25 +573,17 @@ export class MailNotification extends Division {
         const availableChannels = `Success to turn off mail notification.\nNow Available Channels:\n${this.channelIds
           .map(util.genChannelString)
           .join('\n')}`;
-        const servers = `${this.serverConfigs
-          .map(transformServerConfig)
-          .join('\n')}`;
+        const servers = `${this.serverConfigs.map(transformServerConfig).join('\n')}`;
         const availableServers = 'Now Available Servers:\n' + servers;
         await interaction.reply({
-          content: `${
-            result.ifRemoved ? 'Success' : 'Fail'
-          } that remove notification with this channel.\n${
-            result.ifOnline
-              ? availableChannels + '\n' + availableServers
-              : 'Now offline'
+          content: `${result.ifRemoved ? 'Success' : 'Fail'} that remove notification with this channel.\n${
+            result.ifOnline ? availableChannels + '\n' + availableServers : 'Now offline'
           }`,
         });
       },
     };
     const mn_show_status: Command = {
-      data: new SlashCommandBuilder()
-        .setName('mn_show_status')
-        .setDescription('Show the status of mail notification.'),
+      data: new SlashCommandBuilder().setName('mn_show_status').setDescription('Show the status of mail notification.'),
       execute: async (interaction) => {
         if (!interaction.isCommand()) return;
         const channelId = interaction.channelId;
@@ -690,23 +602,17 @@ export class MailNotification extends Division {
         const channelId = interaction.channelId;
         if (!channelId) interaction.reply('channelId is undefined');
         await interaction.reply({
-          content: `${
-            this.online ? this.discordInformation(true) : 'Now offline'
-          }`,
+          content: `${this.online ? this.discordInformation(true) : 'Now offline'}`,
         });
       },
     };
     const mn_add_mailconfiguration: Command = {
-      data: new SlashCommandBuilder()
-        .setName('mn_add_mailconfig')
-        .setDescription('Set mail server information'),
+      data: new SlashCommandBuilder().setName('mn_add_mailconfig').setDescription('Set mail server information'),
       execute: async (interaction) => {
         if (!interaction.isCommand()) return;
         const channelId = interaction.channelId;
         if (!channelId) interaction.reply('channelId is undefined');
-        const modal = new ModalBuilder()
-          .setCustomId('mailserverModal')
-          .setTitle('Mail Server Information');
+        const modal = new ModalBuilder().setCustomId('mailserverModal').setTitle('Mail Server Information');
         const hostInput = new TextInputBuilder()
           .setCustomId('host')
           .setLabel('IMAP Mail Server Host _ex. mail.example.ne.jp')
@@ -719,55 +625,30 @@ export class MailNotification extends Division {
           .setCustomId('password')
           .setLabel('Mail Server Password _ex. xxxxxxxxx')
           .setStyle(TextInputStyle.Short);
-        const firstActionRow =
-          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-            hostInput
-          );
-        const secondActionRow =
-          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-            userInput
-          );
-        const thirdActionRow =
-          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-            passwordInput
-          );
+        const firstActionRow = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(hostInput);
+        const secondActionRow = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(userInput);
+        const thirdActionRow = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(passwordInput);
         modal.addComponents(firstActionRow, secondActionRow, thirdActionRow);
         await interaction.showModal(modal);
       },
     };
     const mn_rm_mailconfiguration: Command = {
-      data: new SlashCommandBuilder()
-        .setName('mn_rm_mailconfig')
-        .setDescription('Remove a mail server configuration'),
+      data: new SlashCommandBuilder().setName('mn_rm_mailconfig').setDescription('Remove a mail server configuration'),
       execute: async (interaction) => {
         if (!interaction.isCommand()) return;
-        const modal = new ModalBuilder()
-          .setCustomId('removeServerModal')
-          .setTitle('Remove Mail Server Configuration');
+        const modal = new ModalBuilder().setCustomId('removeServerModal').setTitle('Remove Mail Server Configuration');
         const userInput = new TextInputBuilder()
           .setCustomId('user')
           .setLabel('User Name')
           .setStyle(TextInputStyle.Short);
-        const hostInput = new TextInputBuilder()
-          .setCustomId('host')
-          .setLabel('Host')
-          .setStyle(TextInputStyle.Short);
+        const hostInput = new TextInputBuilder().setCustomId('host').setLabel('Host').setStyle(TextInputStyle.Short);
         const passwordInput = new TextInputBuilder()
           .setCustomId('password')
           .setLabel('Password')
           .setStyle(TextInputStyle.Short);
-        const actionRowUser =
-          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-            userInput
-          );
-        const actionRowHost =
-          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-            hostInput
-          );
-        const actionRowPassword =
-          new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-            passwordInput
-          );
+        const actionRowUser = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(userInput);
+        const actionRowHost = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(hostInput);
+        const actionRowPassword = new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(passwordInput);
         modal.addComponents(actionRowUser, actionRowHost, actionRowPassword);
 
         // モーダルを表示
@@ -776,9 +657,7 @@ export class MailNotification extends Division {
     };
 
     const mn_fetch: Command = {
-      data: new SlashCommandBuilder()
-        .setName('mn_fetch')
-        .setDescription('Fetch mail'),
+      data: new SlashCommandBuilder().setName('mn_fetch').setDescription('Fetch mail'),
       execute: this.mailCronHandler.bind(this),
     };
     return [

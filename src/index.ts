@@ -6,8 +6,7 @@ import { SocialUtility } from './SocialUtility';
 
 export class IBotCore extends Core {
   constructor() {
-    const { ifRegister, token, clientId, guildId } =
-      systemFirstRunnerEnvManager();
+    const { ifRegister, token, clientId, guildId } = systemFirstRunnerEnvManager();
     if (!token || !clientId || !guildId) {
       throw new Error('Please provide a valid token, client ID, and guild ID.');
     }

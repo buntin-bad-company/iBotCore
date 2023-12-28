@@ -7,8 +7,7 @@ import { systemFirstRunnerEnvManager } from '../src/utils';
 import { ChannelType } from 'discord.js';
 
 const main = async () => {
-  const { ifRegister, token, clientId, guildId } =
-    systemFirstRunnerEnvManager();
+  const { ifRegister, token, clientId, guildId } = systemFirstRunnerEnvManager();
 
   // TEST RUN FORCES TO BE SET THE ENVIRONMENT VARIABLES
 
