@@ -233,7 +233,13 @@ export class MailNotification extends Division {
     if (_interaction) {
       logMessage = `mailCronHandler:${_interaction.commandName} => called with DevMode.`;
       logMessage = this.printInfo(logMessage);
-      _interaction.reply(logMessage);
+      const reply = await _interaction.reply(logMessage);
+      this.discordNotification(
+        'SlashCommand : mailCronHandler called with Bun-DevTools.  \nalready iBotCore::MailNotification => Instance is online.'
+      );
+      logMessage = `mailCronHandler:${_interaction.commandName} => replied with Bun-DevTools.`;
+      logMessage = this.printInfo(logMessage);
+      reply.edit({ content: logMessage });
     }
     const serverConfigs = this.serverConfigs;
     logMessage = `mailCronHandler: Server configs loaded: ${serverConfigs.length} counts`;
@@ -314,7 +320,7 @@ export class MailNotification extends Division {
     if (_interaction) {
       logMessage = `mailCronHandler:${_interaction.commandName} => done`;
       logMessage = this.printInfo(logMessage);
-      _interaction.editReply(logMessage);
+      _interaction.editReply({ content: logMessage });
     }
     logMessage = 'mailCronHandler: done';
     this.printInfo(logMessage);
@@ -805,7 +811,10 @@ export class MailNotification extends Division {
 
     const mn_fetch: Command = {
       data: new SlashCommandBuilder().setName('mn_fetch').setDescription('Fetch mail'),
-      execute: this.mailCronHandler.bind(this),
+      execute: async (interaction) => {
+        if (!interaction.isCommand()) return;
+        return await this.mailCronHandler(interaction);
+      },
     };
     return [
       mn_turn_on,

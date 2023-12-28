@@ -135,6 +135,21 @@ export class SocialUtility extends Division {
         await interaction.editReply(`SocialUtility::su_mailnotification_show_db_info\n${excuseResult}\n`);
       },
     };
+    const su_java_runtime_info: Command = {
+      data: new SlashCommandBuilder().setName('su_java_runtime_info').setDescription('Show java runtime information.'),
+      execute: async (interaction) => {
+        if (!interaction.isCommand()) return;
+        let logMessage = 'su_java_runtime_info : SlashCommand is called';
+        logMessage = this.printInfo(logMessage);
+        /*
+        Typescript Type Slice 
+         */
+        await interaction.deferReply();
+
+        const excuseResult = (await $`java src/SocialUtility/MotdServer.java`).toString();
+        await interaction.editReply(`SocialUtility::su_java_runtime_info\n${excuseResult}\n`);
+      },
+    };
     //Main
     const invite: Command = {
       data: new SlashCommandBuilder().setName('invite').setDescription('Invite this bot to your server.'),
@@ -146,7 +161,7 @@ export class SocialUtility extends Division {
         });
       },
     };
-    return [su_time, su_mailnotification_show_db_info, su_mailnotification_purge_db, invite];
+    return [su_time, su_mailnotification_show_db_info, su_mailnotification_purge_db, su_java_runtime_info, invite];
   }
   //Division制約 events get - ():EventSet[]
   public get events(): EventSet[] {
