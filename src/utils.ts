@@ -35,14 +35,17 @@ export const readJsonFile = <T>(path: string): T | null => {
   }
 };
 
+// TODO: any使うな!!!!!!!!
+/* eslint-disable */
 export const writeJsonFile = (path: string, data: any) => fs.writeFileSync(path, JSON.stringify(data));
+/* eslint-disable */
 
 export const genChannelString = (id: string | number) => `<#${id.toString()}>`;
 
 export const splitArrayIntoChunks = <T>(originalArray: T[], chunkSize: number = 10): T[][] => {
-  let result: T[][] = [];
+  const result: T[][] = [];
   for (let i = 0; i < originalArray.length; i += chunkSize) {
-    let chunk = originalArray.slice(i, i + chunkSize);
+    const chunk = originalArray.slice(i, i + chunkSize);
     result.push(chunk);
   }
   return result;
