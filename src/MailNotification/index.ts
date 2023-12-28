@@ -376,17 +376,19 @@ export class MailNotification extends Division {
     logMessage = this.printInfo(logMessage);
   }
   private mailNotificationExecAChunk(mails: ParsedMail[]) {
-    const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
-    const channels = this.core.channels.cache.filter((channel) =>
-      this.channelIds.includes(channel.id)
-    );
-    const message = {
-      content: 'iBotCore::MailNotification => Mail Notification',
-      embeds,
-    };
-    for (const channel of channels.values()) {
-      if (channel.type === ChannelType.GuildText) {
-        channel.send(message);
+    if (mails.length === 0) {
+      const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
+      const channels = this.core.channels.cache.filter((channel) =>
+        this.channelIds.includes(channel.id)
+      );
+      const message = {
+        content: 'iBotCore::MailNotification => Mail Notification',
+        embeds,
+      };
+      for (const channel of channels.values()) {
+        if (channel.type === ChannelType.GuildText) {
+          channel.send(message);
+        }
       }
     }
   }
@@ -394,12 +396,33 @@ export class MailNotification extends Division {
     const channelIds = this.channelIds;
     let logMessage = '';
     if (!content && !mails) {
-      logMessage = `discordNotification => No content and mail`;
+      const result = await this.generalBroadcast(channelIds, {
+        content: 'discordNotification => No content and mail',
+      });
+      const resultCount = result.reduce((prev, current) => {
+        if (!current) return prev;
+        return prev + 1;
+      }, 0);
+      //メールなし
+      //コンテンツなし
+      logMessage = `discordNotification => No content and mail ${resultCount} channels sent.`;
       logMessage = this.printInfo(logMessage);
     } else if (content && !mails) {
-      logMessage = `discordNotification => No mail`;
+      const result = await this.generalBroadcast(channelIds, {
+        content,
+      });
+      const resultCount = result.reduce((prev, current) => {
+        if (!current) return prev;
+        return prev + 1;
+      }, 0);
+      //メールなし
+      //コンテンツあり
+      logMessage = `discordNotification => content : {${content}},mail${
+        mails ? mails : 'undefined'
+      } ${resultCount} channels sent.`;
       logMessage = this.printInfo(logMessage);
     } else if (!!mails) {
+      //メールあり
       logMessage = `discordNotification => ${mails.length} mails`;
       logMessage = this.printInfo(logMessage);
       const embeds = mails.map((mail) => this.transformMailToEmbed(mail));
@@ -436,7 +459,6 @@ export class MailNotification extends Division {
     const message = `${availableChannels}\n${availableServers}`;
     return message;
   }
-
   //slashcommand,, this.channelIds関連
   private turnOn(channelId: string) {
     try {

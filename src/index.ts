@@ -34,7 +34,6 @@ export class IBotCore extends Core {
       this.commandRegister();
     }
   }
-
   public async start() {
     const constructor = await super.start();
     return constructor;
