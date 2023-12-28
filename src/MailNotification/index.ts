@@ -157,11 +157,11 @@ export class MailNotification extends Division {
       const mailData = await imapServer.fetchOne(mailId, fetchQueryObject);
       const parsedMail = await simpleParser(mailData.source);
       // メールIDがDBに存在するか確認
-      const mailIdExists = this.checkMailIdExists(parsedMail.messageId || 'undefined');
-      const mailIdExistsMessage = `handleNewMail : Mail ID exists : ${parsedMail.messageId}`;
-      const mailIdNotExistsMessage = `handleNewMail : Mail ID not exists : ${parsedMail.messageId}`;
+      const uid = mailData.uid.toString();
+      const mailIdExists = this.checkMailIdExists(uid);
+      const mailIdExistsMessage = `handleNewMail : Mail ID exists : ${uid}`;
+      const mailIdNotExistsMessage = `handleNewMail : Mail ID not exists : ${uid}`;
       logMessage = this.printInfo(mailIdExists ? mailIdExistsMessage : mailIdNotExistsMessage);
-
       // メールIDがDBに存在する場合は何もしない
       if (mailIdExists) {
         logMessage = this.createLogMessage('handleNewMail : Mail ID exists', parsedMail.from?.text);
@@ -230,6 +230,11 @@ export class MailNotification extends Division {
   private async mailCronHandler(_interaction?: CommandInteraction) {
     let logMessage = 'mailCronHandler: started';
     this.printInfo(logMessage);
+    if (_interaction) {
+      logMessage = `mailCronHandler:${_interaction.commandName} => called with DevMode.`;
+      logMessage = this.printInfo(logMessage);
+      _interaction.reply(logMessage);
+    }
     const serverConfigs = this.serverConfigs;
     logMessage = `mailCronHandler: Server configs loaded: ${serverConfigs.length} counts`;
     this.printInfo(logMessage);
@@ -303,8 +308,13 @@ export class MailNotification extends Division {
           j + 1,
           mailIdsLength
         );
-        this.printInfo(logMessage);
+        logMessage = this.printInfo(logMessage);
       }
+    }
+    if (_interaction) {
+      logMessage = `mailCronHandler:${_interaction.commandName} => done`;
+      logMessage = this.printInfo(logMessage);
+      _interaction.editReply(logMessage);
     }
     logMessage = 'mailCronHandler: done';
     this.printInfo(logMessage);
@@ -616,13 +626,11 @@ export class MailNotification extends Division {
           this.setOnline();
           await interaction.editReply({
             content: `[${user}@${host}](<${user}@${host}>) is online`,
-            ephemeral: true,
           } as never);
         } else {
           this.printInfo(`Modal:Submits:handler-> failed to add a server config{${JSON.stringify(added)}}`);
           await interaction.editReply({
             content: 'Mail server configuration failed' + `${(added.user, added.host)}`,
-            ephemeral: true,
           } as never);
         }
         // await interaction.editReply({
@@ -632,7 +640,6 @@ export class MailNotification extends Division {
       if (interaction.customId === 'removeServerModal') {
         let message: InteractionReplyOptions = {
           content: 'Mail server configuration removed',
-          ephemeral: true,
         };
         try {
           const user = interaction.fields.getTextInputValue('user');
@@ -644,12 +651,10 @@ export class MailNotification extends Division {
             this.printInfo(`Modal:Submits:handler-> failed to remove a server config${e.message}`);
             message = {
               content: 'Mail server configuration failed to remove',
-              ephemeral: true,
             };
           } else {
             message = {
               content: 'Mail server configuration failed to remove',
-              ephemeral: true,
             };
           }
         } finally {
