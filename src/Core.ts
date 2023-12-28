@@ -13,13 +13,13 @@ import { Division } from './Division';
 
 export class Core extends Client {
   public static instance: Core;
-  protected coreToken: string;
-  protected coreClientId: string;
+  public coreToken: string;
+  public coreClientId: string;
   /* 
   Main client
   */
   //現状、Coreで全体で保持しているのはDivisionとコマンド（最初に登録するため。）で、EventはDivision追加時にやることにするが、まだ。
-  protected divisions = new Collection<string, Division>(); //iBotCoreに登録されているdivisionコレクション
+  public divisions = new Collection<string, Division>(); //iBotCoreに登録されているdivisionコレクション
   protected commands: Collection<string, Command>; //iBotCore全体のコマンドコレクション
   constructor(token: string, clientId: string) {
     //TODO:インテンツについても、Divisionから取得し必要最低限（Set）で始めるようにする。
@@ -132,7 +132,10 @@ export class Core extends Client {
       const { commandName } = interaction;
       this.log('iBotCore::Core:EventHandler->' + commandName + ' is called');
       const command = this.commands.get(commandName);
-      if (!command) return;
+      if (!command) {
+        this.error('iBotCore::Core:EventHandler->' + commandName + ' is not found');
+        return;
+      }
       try {
         await command.execute(interaction);
         this.log('iBotCore::Core:EventHandler->' + commandName + ' is done');

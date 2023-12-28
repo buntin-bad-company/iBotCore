@@ -60,28 +60,30 @@ export abstract class Division {
   protected async generalBroadcast(
     ids: string[],
     options: string | MessagePayload | MessageCreateOptions
-  ): Promise<(Message<boolean> | undefined)[]> {
-    const messages: (Message<boolean> | undefined)[] = [];
+  ): Promise<((Message<true> | Message<false>) | undefined)[]> {
+    const messages: ((Message<true> | Message<false>) | undefined)[] = [];
     for (const id of ids) {
+      //[division.generalBroadcast.channel]
       let logMessage = '';
       try {
         const channel = this.core.channels.cache.get(id);
         if (!channel) {
-          logMessage = `constructor::generalBroadcast : Channel not found. [${id}]`;
+          logMessage = `[ERROR]constructor::generalBroadcast : Channel not found. [${id}][division.generalBroadcast.channel.undefined]`;
           logMessage = this.printError(logMessage);
           throw new Error(logMessage);
         } else if (!channel.isTextBased()) {
-          logMessage = `constructor::generalBroadcast : Channel is not text based. current:[${channel.type.toString()}] [${id}]`;
+          logMessage = `constructor::generalBroadcast : Channel is not text based. current:[${channel.type.toString()}] [${id}][division.generalBroadcast.channel.notTextBased]`;
           this.printError(logMessage);
           throw new Error(logMessage);
         }
         const message = await channel.send(options);
         messages.push(message);
-        // TODO: any使うな!!!!!!!!
-        /* eslint-disable */
-      } catch (e: any) {
-        /* eslint-disable */
-        this.printError(`constructor::generalBroadcast : Error occurred. [${id}] ${e.text}`);
+      } catch (e) {
+        if (e instanceof Error) {
+          logMessage = this.printError(
+            `constructor::generalBroadcast : Error occurred. [${id}] ${e.message} [division.generalBroadcast.channel.error]`
+          );
+        }
         messages.push(undefined);
       }
     }

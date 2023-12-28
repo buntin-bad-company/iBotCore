@@ -19,6 +19,8 @@ import {
 } from 'discord.js';
 import { Elysia } from 'elysia';
 import { cron } from '@elysiajs/cron';
+import { $ } from 'zx';
+import 'zx/globals';
 
 // global
 import { Division } from '../Division';
@@ -113,42 +115,6 @@ export class MailNotification extends Division {
 
     this.printInitMessage();
   }
-  private initDatabase(maildbStatus: FileStatus, serverdbStatus: FileStatus, channeldbStatus: FileStatus) {
-    //maildb
-    if (!maildbStatus.exists || !maildbStatus.isFile) {
-      this.maildb.exec(`
-    CREATE TABLE IF NOT EXISTS mail_ids (
-      id INTEGER PRIMARY KEY,
-      mail_id TEXT NOT NULL,
-      checked_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-    }
-    this.maildb = new Database(this.mailDatabaseFilePath);
-    //serverdb
-    if (!serverdbStatus.exists || !serverdbStatus.isFile) {
-      this.serverdb.exec(`
-      CREATE TABLE IF NOT EXISTS server_configs (
-        id INTEGER PRIMARY KEY,
-        host TEXT NOT NULL,
-        user TEXT NOT NULL,
-        password TEXT NOT NULL
-      )
-    `);
-    }
-    this.serverdb = new Database(this.serverDatabaseFilePath);
-    //channeldb
-    if (!channeldbStatus.exists || !channeldbStatus.isFile) {
-      this.channeldb.exec(`
-    CREATE TABLE IF NOT EXISTS channel_ids (
-      id INTEGER PRIMARY KEY,
-      channel_id TEXT NOT NULL
-      );
-    CREATE INDEX IF NOT EXISTS idx_channel_id ON channel_ids (channel_id);
-    `);
-    }
-    this.channeldb = new Database(this.channelDatabaseFilePath);
-  }
 
   private initIMAPServers() {
     const serverConfigs = this.serverConfigs;
@@ -218,20 +184,6 @@ export class MailNotification extends Division {
     }
     return embed;
   }
-  //'maildb関連';
-  public addMailId(mailId: string): void {
-    const stmt: Statement = this.maildb.prepare('INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)');
-    stmt.run(mailId);
-  }
-  public checkMailIdExists(mailId: string): boolean {
-    const stmt: Statement = this.maildb.prepare('SELECT 1 FROM mail_ids WHERE mail_id = ?');
-    const result = stmt.get(mailId);
-    return result !== undefined;
-  }
-  public removeMailId(mailId: string): void {
-    const stmt: Statement = this.maildb.prepare('DELETE FROM mail_ids WHERE mail_id = ?');
-    stmt.run(mailId);
-  }
   /* 
 ================================================================================================================================================
 */
@@ -281,6 +233,92 @@ export class MailNotification extends Division {
   private setOffline() {
     this.online = false;
   }
+  /* 
+================================================================================================================================================
+*/
+  //Database関連
+  private initDatabase(maildbStatus: FileStatus, serverdbStatus: FileStatus, channeldbStatus: FileStatus) {
+    //maildb
+    if (!maildbStatus.exists || !maildbStatus.isFile) {
+      this.maildb.exec(`
+  CREATE TABLE IF NOT EXISTS mail_ids (
+    id INTEGER PRIMARY KEY,
+    mail_id TEXT NOT NULL,
+    checked_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+    }
+    this.maildb = new Database(this.mailDatabaseFilePath);
+    //serverdb
+    if (!serverdbStatus.exists || !serverdbStatus.isFile) {
+      this.serverdb.exec(`
+    CREATE TABLE IF NOT EXISTS server_configs (
+      id INTEGER PRIMARY KEY,
+      host TEXT NOT NULL,
+      user TEXT NOT NULL,
+      password TEXT NOT NULL
+    )
+  `);
+    }
+    this.serverdb = new Database(this.serverDatabaseFilePath);
+    //channeldb
+    if (!channeldbStatus.exists || !channeldbStatus.isFile) {
+      this.channeldb.exec(`
+  CREATE TABLE IF NOT EXISTS channel_ids (
+    id INTEGER PRIMARY KEY,
+    channel_id TEXT NOT NULL
+    );
+  CREATE INDEX IF NOT EXISTS idx_channel_id ON channel_ids (channel_id);
+  `);
+    }
+    this.channeldb = new Database(this.channelDatabaseFilePath);
+  }
+  public purgeDB() {
+    this.printInfo('purgeDB : Purging DB [client : online , API Mode]');
+    this.maildb.exec('DELETE FROM mail_ids');
+    this.serverdb.exec('DELETE FROM server_configs');
+    this.channeldb.exec('DELETE FROM channel_ids');
+    this.printInfo('purgeDB : Purged DB [client : online , API Mode]');
+  }
+  public async disclosureDatabases() {
+    let logMessage = 'disclosureDatabases: Running shell commands for database info';
+    this.printInfo(logMessage);
+
+    try {
+      $.verbose = false;
+      // ここで必要なシェルコマンドを実行します
+      const maildbInfo = await $`ls -lh ${this.mailDatabaseFilePath}`;
+      const serverdbInfo = await $`ls -lh ${this.serverDatabaseFilePath}`;
+      const channeldbInfo = await $`ls -lh ${this.channelDatabaseFilePath}`;
+      logMessage = this.printInfo('disclosureDatabases: Done');
+      logMessage = ['', maildbInfo.stdout, serverdbInfo.stdout, channeldbInfo.stdout].join('\n');
+      logMessage = this.printInfo(logMessage);
+    } catch (e) {
+      if (e instanceof Error) {
+        logMessage = `disclosureDatabases: ${e.message}`;
+      } else {
+        logMessage = `disclosureDatabases: ${e}`;
+      }
+      logMessage = this.printError(logMessage);
+    } finally {
+      $.verbose = true;
+    }
+    return logMessage;
+  }
+  //'maildb関連';
+  protected addMailId(mailId: string): void {
+    const stmt: Statement = this.maildb.prepare('INSERT OR IGNORE INTO mail_ids (mail_id) VALUES (?)');
+    stmt.run(mailId);
+  }
+  protected checkMailIdExists(mailId: string): boolean {
+    const stmt: Statement = this.maildb.prepare('SELECT 1 FROM mail_ids WHERE mail_id = ?');
+    const result = stmt.get(mailId);
+    return result !== undefined;
+  }
+  protected removeMailId(mailId: string): void {
+    const stmt: Statement = this.maildb.prepare('DELETE FROM mail_ids WHERE mail_id = ?');
+    stmt.run(mailId);
+  }
   //serverdb関連
   private addServerConfig(config: ServerConfig) {
     const stmt = this.serverdb.prepare(`
@@ -319,6 +357,9 @@ export class MailNotification extends Division {
     const rows = stmt.all() as { channel_id: string }[]; // 修正: as { channel_id: string }[]
     return rows.map((row) => row.channel_id);
   }
+  /* 
+================================================================================================================================================
+*/
 
   //mailNotificationQueue関連 ログメッセージすべて完了。
   private queueHandler() {
@@ -357,6 +398,7 @@ export class MailNotification extends Division {
       }
     }
   }
+
   private async discordNotification(content?: string, mails?: ParsedMail[]) {
     const channelIds = this.channelIds;
     let result: (Message<boolean> | undefined)[] = [];
@@ -425,33 +467,27 @@ export class MailNotification extends Division {
       }
       return true;
     } catch (e) {
-      // TODO: any使うな!!!!!!!!
-      /* eslint-disable */
-      this.printError(`mailNotification::turnOn->${!e ? (e as any).message : 'undefined'}`);
-      /* eslint-disable */
-      return false;
+      if (e instanceof Error) {
+        this.printError(`mailNotification::turnOn->${e.message}`);
+      } else {
+        this.printError(`mailNotification::turnOn->${e}`);
+      }
     }
   }
   private turnOff(channelId: string) {
     try {
-      let ifRemoved = false;
-      if (this.channelIds.includes(channelId)) {
-        this.removeChannelId(channelId);
-        ifRemoved = true;
-      }
+      this.removeChannelId(channelId);
       if (this.channelIds.length === 0) {
         this.setOffline();
       }
-      return {
-        ifRemoved,
-        ifOnline: this.online,
-      };
+      return { ifRemoved: true, ifOnline: this.online };
     } catch (e) {
-      console.error(e);
-      return {
-        ifRemoved: false,
-        ifOnline: this.online,
-      };
+      if (e instanceof Error) {
+        this.printError(`mailNotification::turnOff->${e.message}`);
+      } else {
+        this.printError(`mailNotification::turnOff->${e}`);
+      }
+      return { ifRemoved: false, ifOnline: this.online };
     }
   }
   //slashcommand,, modal,serverconfig関連
@@ -476,13 +512,13 @@ export class MailNotification extends Division {
           interaction.editReply({
             content: `[${user}@${host}](<${user}@${host}>) is online`,
             ephemeral: true,
-          } as any);
+          } as never);
         } else {
           this.printInfo(`Modal:Submits:handler-> failed to add a server config{${JSON.stringify(added)}}`);
           interaction.editReply({
             content: 'Mail server configuration failed' + `${(added.user, added.host)}`,
             ephemeral: true,
-          } as any);
+          } as never);
         }
         await interaction.reply({
           content: 'Mail server configuration saved',
