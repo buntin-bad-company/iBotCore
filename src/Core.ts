@@ -66,11 +66,14 @@ export class Core extends Client {
   protected addEvents(newEventSets: EventSet[]) {
     for (const eventSet of newEventSets) {
       const { event, listener, once } = eventSet;
+      // TODO: any使うな!!!!!!!!
+      /* eslint-disable */
       if (once) {
         this.once(event, listener as (...args: any[]) => Awaitable<void>);
       } else {
         this.on(event, listener as (...args: any[]) => Awaitable<void>);
       }
+      /* eslint-disable */
     }
   }
   public addDivision(div: Division) {

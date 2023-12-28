@@ -1,10 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { IBotCore } from '../src/index';
-import { FileBinder } from '../src/FileBinder';
-import { MailNotification } from '../src/MailNotification';
 import { systemFirstRunnerEnvManager } from '../src/utils';
-import { ChannelType } from 'discord.js';
 
 const main = async () => {
   const { ifRegister, token, clientId, guildId } = systemFirstRunnerEnvManager();

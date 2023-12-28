@@ -5,7 +5,6 @@ import timezone from 'dayjs/plugin/timezone';
 // global
 import { Division } from '../Division';
 import { Core } from '../Core';
-import * as util from '../utils';
 
 //local
 dayjs.extend(utc);
@@ -23,7 +22,7 @@ export class SocialUtility extends Division {
   */
   constructor(core: Core) {
     super(core);
-    let logMessage = 'Constructor: SocialUtility Online';
+    const logMessage = 'Constructor: SocialUtility Online';
     this.printInfo(logMessage);
     this.printInitMessage();
   }

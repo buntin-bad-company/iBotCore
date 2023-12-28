@@ -1,7 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import imap from 'imap';
 import { promisify } from 'node:util';
-import { Core } from '../Core';
 
 import { MNBotData, ServerConfig } from './types';
 export const genServerConfigEmbed = (serverConfig: ServerConfig) => {

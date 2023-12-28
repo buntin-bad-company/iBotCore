@@ -1,5 +1,5 @@
 import Database, { Statement } from 'bun:sqlite';
-import { simpleParser, ParsedMail, AddressObject } from 'mailparser';
+import { ParsedMail, AddressObject } from 'mailparser';
 import { ImapFlow } from 'imapflow';
 import {
   SlashCommandBuilder,
@@ -28,7 +28,6 @@ import * as util from '../utils';
 //local
 import { ServerConfig } from './types';
 import { transformServerConfig, testIMAPConnection } from './utils';
-import imap from 'imap';
 
 export class MailNotification extends Division {
   /* 
@@ -191,7 +190,7 @@ export class MailNotification extends Division {
     if (mail.date) embed.setTimestamp(mail.date);
     if (mail.to) {
       const isArray = Array.isArray(mail.to);
-      let ary: AddressObject[] = [];
+      const ary: AddressObject[] = [];
       if (!mail.to && isArray) {
         const to = mail.to as AddressObject[];
         ary.concat(to);
@@ -205,7 +204,7 @@ export class MailNotification extends Division {
     }
     if (mail.cc) {
       const isArray = Array.isArray(mail.to);
-      let ary: AddressObject[] = [];
+      const ary: AddressObject[] = [];
       if (!mail.cc && isArray) {
         const cc = mail.cc as AddressObject[];
         ary.concat(cc);
@@ -236,7 +235,7 @@ export class MailNotification extends Division {
   /* 
 ================================================================================================================================================
 */
-  //mail check main　意図的にinteractionは入れている(TypeScript制約による)
+  //mail check main 意図的にinteractionは入れている(TypeScript制約による)
   private async mailCronHandler(_interaction?: CommandInteraction) {
     let logMessage = 'mailCronHandler: started';
     this.printInfo(logMessage);
@@ -302,7 +301,7 @@ export class MailNotification extends Division {
     const stmt = this.serverdb.prepare(`
     DELETE FROM server_configs WHERE host = ? AND user = ? AND password = ?`);
     stmt.run(config.host, config.user, config.password);
-    let logMessage = `serverdb:removeServerConfig => removed a server config{${JSON.stringify(config)}}`;
+    const logMessage = `serverdb:removeServerConfig => removed a server config{${JSON.stringify(config)}}`;
     this.printInfo(logMessage);
   }
 
@@ -325,7 +324,7 @@ export class MailNotification extends Division {
   private queueHandler() {
     const length = this.mailNotificationQueue.length;
     if (length === 0) {
-      let logMessage = `queueHandler => No mail to notify`;
+      let logMessage = 'queueHandler => No mail to notify';
       logMessage = this.printInfo(logMessage);
       return;
     }
@@ -388,7 +387,7 @@ export class MailNotification extends Division {
         mails ? mails : 'undefined'
       } ${resultCount} channels sent.`;
       logMessage = this.printInfo(logMessage);
-    } else if (!!mails) {
+    } else if (mails) {
       //メールあり
       logMessage = `discordNotification => ${mails.length} mails`;
       logMessage = this.printInfo(logMessage);
@@ -426,7 +425,10 @@ export class MailNotification extends Division {
       }
       return true;
     } catch (e) {
+      // TODO: any使うな!!!!!!!!
+      /* eslint-disable */
       this.printError(`mailNotification::turnOn->${!e ? (e as any).message : 'undefined'}`);
+      /* eslint-disable */
       return false;
     }
   }

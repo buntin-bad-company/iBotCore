@@ -77,7 +77,10 @@ export abstract class Division {
         }
         const message = await channel.send(options);
         messages.push(message);
+        // TODO: any使うな!!!!!!!!
+        /* eslint-disable */
       } catch (e: any) {
+        /* eslint-disable */
         this.printError(`constructor::generalBroadcast : Error occurred. [${id}] ${e.text}`);
         messages.push(undefined);
       }

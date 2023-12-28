@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'path';
-import { Events, Interaction, Message, SlashCommandBuilder } from 'discord.js';
+import { Events, Message, SlashCommandBuilder } from 'discord.js';
 
 import { Division } from '../Division';
 import { Core } from '../Core';
