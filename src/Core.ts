@@ -38,7 +38,17 @@ export class Core extends Client {
     this.commands = new Collection();
     this.divisions = new Collection();
   }
-  public static getInstance(token: string, clientId: string): Core {
+
+  public getCore() {
+    if (!Core.instance) {
+      Core.getInstance(this.coreToken, this.coreClientId);
+      if (!Core.instance)
+        throw new Error('[ERROR]Core:getCore => Core is not initialized');
+    }
+    return Core.instance;
+  }
+
+  private static getInstance(token: string, clientId: string): Core {
     if (!Core.instance) {
       Core.instance = new Core(token, clientId);
     }
@@ -93,15 +103,23 @@ export class Core extends Client {
   }
 
   protected log(message: string) {
-    const msg = `iBotCore::Core => ${message}`;
+    let msg = `Core => ${message}`;
+    if (message.startsWith('\n')) {
+      msg = message.slice(1);
+    }
     console.log(msg);
+    return msg;
+  }
+  protected error(message: string) {
+    const msg = `iBotCore::Core => ${message}`;
+    console.error(msg);
     return msg;
   }
   public async commandRegister() {
     try {
       const client = new REST().setToken(this.coreToken);
       const commands: Command[] = Array.from(this.commands.values());
-      console.log(
+      this.log(
         `Started refreshing ${commands.length} application (/) commands.`
       );
       const data = await client.put(
@@ -110,9 +128,9 @@ export class Core extends Client {
           body: commands.map((command) => command.data.toJSON()),
         }
       );
-      console.log('Successfully reloaded application (/) commands.');
+      this.log('Successfully reloaded application (/) commands.');
     } catch (e) {
-      console.error(e);
+      this.error(e as string);
     }
   }
 
@@ -123,14 +141,14 @@ export class Core extends Client {
     listener: async (interaction: Interaction) => {
       if (!interaction.isCommand()) return;
       const { commandName } = interaction;
-      console.log('iBotCore::Core:EventHandler->' + commandName + ' is called');
+      this.log('iBotCore::Core:EventHandler->' + commandName + ' is called');
       const command = this.commands.get(commandName);
       if (!command) return;
       try {
         await command.execute(interaction);
-        console.log('iBotCore::Core:EventHandler->' + commandName + ' is done');
+        this.log('iBotCore::Core:EventHandler->' + commandName + ' is done');
       } catch (error) {
-        console.error(error);
+        this.error(error as string);
         interaction.reply({
           content: 'There was an error while executing this command!',
           ephemeral: true,
@@ -145,16 +163,16 @@ export class Core extends Client {
       once: true,
       event: Events.ClientReady,
       listener: async () => {
-        console.log(`----------\nLogged in as ${this.user?.tag}!\n----------`);
+        this.log(`\n----------\nLogged in as ${this.user?.tag}!\n----------`);
         // const channels = Array.from(this.channels.cache.values());
         // const textChannels = channels.filter(
         //   (channel) => channel.type === ChannelType.GuildText
         // );
-        // console.log('----------\nTextChannels\n----------');
+        // this.log('----------\nTextChannels\n----------');
         // for (const channel of textChannels) {
-        //   console.log(JSON.stringify(channel, null, 2));
+        //   this.log(JSON.stringify(channel, null, 2));
         // }
-        // console.log('--------------------');
+        // this.log('--------------------');
       },
     };
   }
@@ -164,10 +182,10 @@ export class Core extends Client {
     const textChannels = channels.filter(
       (channel) => channel.type === ChannelType.GuildText
     );
-    const filterdChannels = textChannels.filter((channel) => {
+    const filteredChannels = textChannels.filter((channel) => {
       return ids.includes(channel.id);
     });
-    return filterdChannels;
+    return filteredChannels;
   }
 
   public async start() {

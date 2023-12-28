@@ -14,14 +14,18 @@ export class IBotCore extends Core {
     }
     super(token, clientId);
 
-    // Edit HERE to add your own divisions
+    // Edit HERE to load your own divisions
     // const fileBinder = new FileBinder(this);
     // const mailNotification = new MailNotification(this);
-    // this.addDivision(fileBinder);
-    // this.addDivision(mailNotification);
+
     const fileBinder = new FileBinder(this);
     const mailNotification = new MailNotification(this);
     const socialUtility = new SocialUtility(this);
+
+    // Edit HERE to add your own divisions
+    // this.addDivision(fileBinder);
+    // this.addDivision(mailNotification);
+
     this.addDivision(fileBinder);
     this.addDivision(mailNotification);
     this.addDivision(socialUtility);
