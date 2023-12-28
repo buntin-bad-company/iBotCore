@@ -15,6 +15,7 @@ import {
   EmbedBuilder,
   InteractionReplyOptions,
   Collection,
+  Message,
 } from 'discord.js';
 import { Elysia } from 'elysia';
 import { cron } from '@elysiajs/cron';
@@ -273,6 +274,18 @@ export class MailNotification extends Division {
         length
       );
       this.printInfo(logMessage);
+      const key = `${config.host}:${config.user}`;
+      const imapServer = this.imapServerConnections.get(key);
+      if (!imapServer) {
+        logMessage = this.createLogMessage(
+          'mailCronHandler: imapServer not found',
+          address,
+          i + 1,
+          length
+        );
+        this.printInfo(logMessage);
+        continue;
+      }
     }
     logMessage = 'mailCronHandler: done';
     this.printInfo(logMessage);
@@ -291,7 +304,7 @@ export class MailNotification extends Division {
     if (current !== undefined && total !== undefined) {
       logMessage += ` (${current}/${total})`;
     }
-    return logMessage;
+    return this.printInfo(logMessage);
   }
   /* 
 ================================================================================================================================================
@@ -299,6 +312,9 @@ export class MailNotification extends Division {
   //division properties
   private setOnline() {
     this.online = true;
+    this.discordNotification(
+      'iBotCore::MailNotification : SetOnline => Server Started'
+    );
   }
   private setOffline() {
     this.online = false;
@@ -394,9 +410,10 @@ export class MailNotification extends Division {
   }
   private async discordNotification(content?: string, mails?: ParsedMail[]) {
     const channelIds = this.channelIds;
+    let result: (Message<boolean> | undefined)[] = [];
     let logMessage = '';
     if (!content && !mails) {
-      const result = await this.generalBroadcast(channelIds, {
+      result = await this.generalBroadcast(channelIds, {
         content: 'discordNotification => No content and mail',
       });
       const resultCount = result.reduce((prev, current) => {
@@ -408,7 +425,7 @@ export class MailNotification extends Division {
       logMessage = `discordNotification => No content and mail ${resultCount} channels sent.`;
       logMessage = this.printInfo(logMessage);
     } else if (content && !mails) {
-      const result = await this.generalBroadcast(channelIds, {
+      result = await this.generalBroadcast(channelIds, {
         content,
       });
       const resultCount = result.reduce((prev, current) => {
@@ -429,7 +446,7 @@ export class MailNotification extends Division {
       const channels = this.core.channels.cache.filter((channel) =>
         this.channelIds.includes(channel.id)
       );
-      const result = await this.generalBroadcast(channelIds, {
+      result = await this.generalBroadcast(channelIds, {
         content: content ? content : 'generalBroadcast => Mail Notification',
         embeds,
       });

@@ -88,6 +88,7 @@ export abstract class Division {
     }
     return messages;
   }
+  //TODO: channels: Collection<string, Channel>を、引数に取るgeneralBroadcast,castToChannelsを実装する。
   protected now(arg?: Date, template?: string) {
     return dayjs(arg)
       .locale(ja)

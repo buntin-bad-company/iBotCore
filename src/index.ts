@@ -1,4 +1,3 @@
-import { ChannelType } from 'discord.js';
 import { Core } from './Core';
 import { FileBinder } from './FileBinder';
 import { MailNotification } from './MailNotification';
