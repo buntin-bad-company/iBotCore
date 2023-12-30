@@ -229,17 +229,23 @@ export class MailNotification extends Division {
   //mail check main 意図的にinteractionは入れている(TypeScript制約による)
   private async mailCronHandler(_interaction?: CommandInteraction) {
     let logMessage = 'mailCronHandler: started';
+    const ifCommandInteraction = (_interaction !== undefined && _interaction.commandName === 'mn_fetch') as boolean;
     this.printInfo(logMessage);
-    if (_interaction) {
+    if (ifCommandInteraction) {
+      if (_interaction === undefined) {
+        logMessage = 'mailCronHandler: _interaction is undefined';
+        logMessage = this.printError(logMessage);
+        await this.discordNotification(logMessage);
+        return;
+      }
       logMessage = `mailCronHandler:${_interaction.commandName} => called with DevMode.`;
       logMessage = this.printInfo(logMessage);
-      const reply = await _interaction.reply(logMessage);
       this.discordNotification(
         'SlashCommand : mailCronHandler called with Bun-DevTools.  \nalready iBotCore::MailNotification => Instance is online.'
       );
       logMessage = `mailCronHandler:${_interaction.commandName} => replied with Bun-DevTools.`;
       logMessage = this.printInfo(logMessage);
-      reply.edit({ content: logMessage });
+      await _interaction.deferReply();
     }
     const serverConfigs = this.serverConfigs;
     logMessage = `mailCronHandler: Server configs loaded: ${serverConfigs.length} counts`;
@@ -317,13 +323,27 @@ export class MailNotification extends Division {
         logMessage = this.printInfo(logMessage);
       }
     }
-    if (_interaction) {
+    if (ifCommandInteraction) {
+      if (_interaction === undefined) {
+        logMessage = 'mailCronHandler: _interaction is undefined';
+        logMessage = this.printError(logMessage);
+        await this.discordNotification(logMessage);
+        return;
+      }
       logMessage = `mailCronHandler:${_interaction.commandName} => done`;
       logMessage = this.printInfo(logMessage);
-      _interaction.editReply({ content: logMessage });
+      if (_interaction.deferred) {
+        await _interaction.followUp({ content: logMessage });
+      }
+      if (_interaction.replied) {
+        await _interaction.editReply({ content: logMessage });
+      }
     }
     logMessage = 'mailCronHandler: done';
-    this.printInfo(logMessage);
+    logMessage = this.printInfo(logMessage);
+    //push to discord
+    await this.discordNotification(logMessage);
+    return;
   }
 
   private createLogMessage(message: string, address?: string, current?: number, total?: number): string {
