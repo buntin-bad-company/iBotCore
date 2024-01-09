@@ -17,6 +17,7 @@
     "mailparser",
     "mailserver",
     "modalsubmits",
+    "purgemndb",
     "ronly",
     "selectmenu",
     "selectserverconfig",

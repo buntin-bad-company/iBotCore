@@ -48,7 +48,7 @@ export class MailNotification extends Division {
   private mailDatabaseFilePath: string;
   private serverDatabaseFilePath: string;
   private channelDatabaseFilePath: string;
-  private imapServerConnections: Collection<string, ImapFlow>;
+  private imapServerConnections: Collection<string, ImapFlow | null>;
   private mailNotificationQueue: ParsedMail[];
   constructor(core: Core) {
     super(core);
@@ -122,24 +122,24 @@ export class MailNotification extends Division {
       const address = `${user}@${host}`;
       const key = `${host}:${user}`;
       let logMessage = this.createLogMessage(`initImapServers : Initializing IMAP Server key=${key}`, address);
-      this.printInfo(logMessage);
-      const imapServer = new ImapFlow({
-        host: host,
-        port: 993,
-        secure: true,
-        auth: {
-          user: address,
-          pass: password,
-        },
-      });
-      this.imapServerConnections.set(key, imapServer);
+      try {
+        const imapServer = new ImapFlow({
+          host: host,
+          port: 993,
+          secure: true,
+          auth: {
+            user: address,
+            pass: password,
+          },
+        });
+        this.imapServerConnections.set(key, imapServer);
+      } catch (err) {
+        const msg = `key:"${key}",server connection is not established. Inserted null`;
+        logMessage = this.createLogMessage(msg);
+        this.imapServerConnections.set(key, null);
+      }
       logMessage = this.createLogMessage('initImapServers : Initialized', address);
       this.printInfo(logMessage);
-      const t = imapServer.eventNames.bind(imapServer).toString();
-      console.log(t);
-      imapServer.on('mail', (mailId) => {
-        this.handleNewMail(imapServer, mailId);
-      });
     }
   }
 
@@ -257,7 +257,6 @@ export class MailNotification extends Division {
       const address = `${user}@${host}`;
       const key = `${host}:${user}`;
       logMessage = this.createLogMessage(`mailCronHandler: Checking mail for ${address}`, address, i + 1, length);
-      this.printInfo(logMessage);
       const imapServer = this.imapServerConnections.get(key);
       if (!imapServer) {
         logMessage = this.createLogMessage('mailCronHandler: imapServer not found', address, i + 1, length);
