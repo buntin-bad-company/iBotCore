@@ -18,7 +18,6 @@ export class Core extends Client {
   /* 
   Main client
   */
-  //現状、Coreで全体で保持しているのはDivisionとコマンド（最初に登録するため。）で、EventはDivision追加時にやることにするが、まだ。
   public divisions = new Collection<string, Division>(); //iBotCoreに登録されているdivisionコレクション
   protected commands: Collection<string, Command>; //iBotCore全体のコマンドコレクション
   constructor(token: string, clientId: string) {
@@ -66,14 +65,11 @@ export class Core extends Client {
   protected addEvents(newEventSets: EventSet[]) {
     for (const eventSet of newEventSets) {
       const { event, listener, once } = eventSet;
-      // TODO: any使うな!!!!!!!!
-      /* eslint-disable */
       if (once) {
-        this.once(event, listener as (...args: any[]) => Awaitable<void>);
+        this.once(event, listener  as (...args: any[]) => Awaitable<void>);
       } else {
         this.on(event, listener as (...args: any[]) => Awaitable<void>);
       }
-      /* eslint-disable */
     }
   }
   public addDivision(div: Division) {

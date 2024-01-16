@@ -35,10 +35,7 @@ export const readJsonFile = <T>(path: string): T | null => {
   }
 };
 
-// TODO: any使うな!!!!!!!!
-/* eslint-disable */
 export const writeJsonFile = (path: string, data: any) => fs.writeFileSync(path, JSON.stringify(data));
-/* eslint-disable */
 
 export const genChannelString = (id: string | number) => `<#${id.toString()}>`;
 
