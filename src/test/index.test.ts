@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { IBotCore } from '../src/index';
-import { systemFirstRunnerEnvManager } from '../src/utils';
+import { IBotCore } from '../index';
+import { systemFirstRunnerEnvManager } from '../utils';
 
 const main = async () => {
   const { ifRegister, token, clientId, guildId } = systemFirstRunnerEnvManager();
