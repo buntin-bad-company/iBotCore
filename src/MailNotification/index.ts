@@ -153,7 +153,7 @@ export class MailNotification extends Division {
         size: true,
         bodyParts: ['text', 'html'],
         source: true,
-      }; // メールデータをパース
+      }; 
       const mailData = await imapServer.fetchOne(mailId, fetchQueryObject);
       const parsedMail = await simpleParser(mailData.source);
       // メールIDがDBに存在するか確認

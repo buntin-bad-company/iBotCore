@@ -25,6 +25,7 @@
     "serverconfig",
     "serverdb",
     "slashcommand",
-    "synthia"
+    "synthia",
+    "uids"
   ]
 }

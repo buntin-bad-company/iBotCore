@@ -19,7 +19,6 @@ export abstract class Division {
   インスタンス内で組み込んで、名前の重複があった場合その時点でエラーを投げる。なぜかというと、DiscordAPI呼び出しで百パーセントバグるから。
   各種コマンドの名前解決、重複検知は、実際に保存してあるオブジェクトのコレクションを、逐次走査する形式で実装。名前実際のマップを同期する機能はエラーのものになりそうだから。
   重複なしで、追加できれば良い。Divisiondごとに処理が失敗した場合の通知、再起動などをDiscord上から行える処理を考えているため、処理単位については気を付ける。
-
   p::name:string
   ronly::core:Core
   p::commands:Command[]
@@ -47,8 +46,8 @@ export abstract class Division {
   }
   abstract get slashCommands(): Command[];
   abstract get events(): EventSet[];
-  protected printInfo(message: string) {
-    const message_ = `iBotCore::${this.name} => ${message}  [${this.now()}]`;
+  protected printInfo(message?: string) {
+    const message_ = `iBotCore::${this.name} => ${message || 'undefined'}  [${this.now()}]`;
     console.log(message_);
     return message_;
   }
