@@ -51,8 +51,8 @@ export abstract class Division {
   protected async generalBroadcast(
     ids: string[],
     options: string | MessagePayload | MessageCreateOptions
-  ): Promise<((Message<true> | Message<false>) | undefined)[]> {
-    const messages: ((Message<true> | Message<false>) | undefined)[] = [];
+  ): Promise<(Message<true> | Message<false>)[]> {
+    const messages: (Message<true> | Message<false>)[] = [];
     for (const id of ids) {
       //[division.generalBroadcast.channel]
       let logMessage = '';
@@ -61,12 +61,13 @@ export abstract class Division {
         if (!channel) {
           logMessage = `[ERROR]constructor::generalBroadcast : Channel not found. [${id}][division.generalBroadcast.channel.undefined]`;
           logMessage = this.printError(logMessage);
-          throw new Error(logMessage);
+          continue;
         } else if (!channel.isTextBased()) {
           logMessage = `constructor::generalBroadcast : Channel is not text based. current:[${channel.type.toString()}] [${id}][division.generalBroadcast.channel.notTextBased]`;
           this.printError(logMessage);
-          throw new Error(logMessage);
+          continue;
         }
+        //channel is TextBasedChannel
         const message = await channel.send(options);
         messages.push(message);
       } catch (e) {
@@ -75,7 +76,7 @@ export abstract class Division {
             `constructor::generalBroadcast : Error occurred. [${id}] ${e.message} [division.generalBroadcast.channel.error]`
           );
         }
-        messages.push(undefined);
+        continue;
       }
     }
     return messages;

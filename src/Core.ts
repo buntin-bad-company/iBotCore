@@ -101,7 +101,7 @@ export class Core extends Client {
     return msg;
   }
   protected error(message: string) {
-    const msg = `iBotCore::Core => ${message}`;
+    const msg = `[${now()}] iBotCore::Core => ${message}`;
     console.error(msg);
     return msg;
   }
@@ -180,9 +180,3 @@ export class Core extends Client {
     return this;
   }
 }
-
-//
-/* 
-auth_basic "code.buntin.tech";
-auth_basic_user_file /etc/nginx/htpasswd.d/code.buntin.tech.htpasswd;
-*/
