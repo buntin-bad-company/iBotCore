@@ -74,7 +74,6 @@ export class MailNotification extends Division {
     }
     logMessage = 'Constructor : Initialized Database Instance';
     this.printInfo(logMessage);
-
     logMessage = 'Constructor : Initializing Imap Server Connections';
     this.printInfo(logMessage);
     this.imapServerConnections = new Collection();
@@ -112,7 +111,6 @@ export class MailNotification extends Division {
     logMessage = this.printInfo('Constructor : Initialized Cron Clients');
     logMessage = this.printInfo('Constructor : Done');
     Bun.sleepSync(500);
-
     this.printInitMessage();
   }
   private initIMAPServers() {
@@ -153,7 +151,7 @@ export class MailNotification extends Division {
         size: true,
         bodyParts: ['text', 'html'],
         source: true,
-      }; 
+      };
       const mailData = await imapServer.fetchOne(mailId, fetchQueryObject);
       const parsedMail = await simpleParser(mailData.source);
       // メールIDがDBに存在するか確認
@@ -554,6 +552,8 @@ export class MailNotification extends Division {
       logMessage = `discordNotification => No content and mail ${resultCount} channels sent.`;
       logMessage = this.printInfo(logMessage);
     } else if (content && !mails) {
+      //メールなし
+      //コンテンツあり
       result = await this.generalBroadcast(channelIds, {
         content,
       });
@@ -561,11 +561,7 @@ export class MailNotification extends Division {
         if (!current) return prev;
         return prev + 1;
       }, 0);
-      //メールなし
-      //コンテンツあり
-      logMessage = `discordNotification => content : {${content}},mail${
-        mails ? mails : 'undefined'
-      } ${resultCount} channels sent.`;
+      logMessage = `discordNotification => content : "${content}"`;
       logMessage = this.printInfo(logMessage);
     } else if (mails) {
       //メールあり

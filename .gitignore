@@ -145,3 +145,4 @@ data/SocialUtility/*
 !data/SocialUtility/.gitkeep
 data/TodoManager/*
 !data/TodoManager/.gitkeep
+.DS_Store

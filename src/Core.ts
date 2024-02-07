@@ -10,7 +10,7 @@ import {
   Routes,
 } from 'discord.js';
 import { Division } from './Division';
-
+import { now } from './utils';
 export class Core extends Client {
   public static instance: Core;
   public coreToken: string;
@@ -53,10 +53,10 @@ export class Core extends Client {
     return Core.instance;
   }
   protected addCommands(newCommands: Command[]) {
-    const reservedNamePool = new Set(newCommands.map((command) => command.data.name));
-    const ifDuplicate = newCommands.every((command) => !reservedNamePool.has(command.data.name));
-    if (ifDuplicate) {
-      throw new Error('command name duplicated');
+    const reservedNamePool = new Set(this.commands.map((command) => command.data.name));
+    const duplicatedCommands = newCommands.filter((command) => reservedNamePool.has(command.data.name));
+    if (duplicatedCommands.length !== 0) {
+      throw new Error('command name duplicated' + duplicatedCommands.map((command) => command.data.name).join(','));
     }
     for (const command of newCommands) {
       this.commands.set(command.data.name, command);
@@ -66,7 +66,7 @@ export class Core extends Client {
     for (const eventSet of newEventSets) {
       const { event, listener, once } = eventSet;
       if (once) {
-        this.once(event, listener  as (...args: any[]) => Awaitable<void>);
+        this.once(event, listener as (...args: any[]) => Awaitable<void>);
       } else {
         this.on(event, listener as (...args: any[]) => Awaitable<void>);
       }
@@ -93,7 +93,7 @@ export class Core extends Client {
   }
 
   protected log(message: string) {
-    let msg = `Core => ${message}`;
+    let msg = `[${now()}] Core => ${message}`;
     if (message.startsWith('\n')) {
       msg = message.slice(1);
     }

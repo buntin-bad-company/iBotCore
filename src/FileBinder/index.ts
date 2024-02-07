@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import path from 'path';
+import { join } from 'path';
 import { Events, Message, SlashCommandBuilder } from 'discord.js';
 
 import { Division } from '../Division';
@@ -13,22 +13,20 @@ export class FileBinder extends Division {
   private urlPreset: string;
   constructor(core: Core) {
     super(core);
-    //
     const dataDir = Bun.env.FILE_BINDER_DATA_DIR;
     const botData = Bun.env.FILE_BINDER_BOT_DATA;
     const urlPreset = Bun.env.FILE_BINDER_URL_PRESET;
     if (!dataDir || !botData || !urlPreset) {
-      throw new Error('dataDir or botData or urlPreset is not set.')
+      throw new Error('dataDir or botData or urlPreset is not set.');
     }
-    //
     this.urlPreset = urlPreset;
-    this.bindingDirPath = path.join(this.division_data_dir, dataDir);
+    this.bindingDirPath = join(this.division_data_dir, dataDir);
     if (!fs.existsSync(this.bindingDirPath)) {
       throw new Error(`Please provide a valid data directory. [${this.bindingDirPath}]`);
     } else {
       this.printInfo(`Binding Data Dir exists: ${this.bindingDirPath}`);
     }
-    this.fileBinderDivDataPath = path.join(this.division_data_dir, botData);
+    this.fileBinderDivDataPath = join(this.division_data_dir, botData);
     if (!fs.existsSync(this.fileBinderDivDataPath)) {
       throw new Error(
         `Please provide a valid bot data file.If this run is first time, run src/FileBinder/genBotData.ts [${this.fileBinderDivDataPath}]`
@@ -40,11 +38,16 @@ export class FileBinder extends Division {
     this.printInitMessage();
   }
   private get data() {
-    const data: FBBotData | null = util.readJsonFile(this.fileBinderDivDataPath);
+    const data = util.readJsonFile<FBBotData>(this.fileBinderDivDataPath);
     if (!data) {
-      throw new Error(
-        'iBotCore::FileBinder -> division data dir or json is not loadable.' + this.fileBinderDivDataPath
-      );
+      util.writeJsonFile(this.fileBinderDivDataPath, { monitors: [] });
+      const buffer = util.readJsonFile<FBBotData>(this.fileBinderDivDataPath);
+      if (Bun.deepEquals(buffer, { monitors: [] })) {
+        this.printInfo('FileBinder::BotData is initialized.');
+        return buffer!;
+      } else {
+        throw new Error('FileBinder::BotData cannot initialize.');
+      }
     }
     return data;
   }
@@ -62,10 +65,10 @@ export class FileBinder extends Division {
     return { basename, ext };
   }
   private resolveFilename(dataDir: string, filename: string): string {
-    let filepath = path.join(dataDir, filename);
+    let filepath = join(dataDir, filename);
     if (fs.existsSync(filepath)) {
       const { basename, ext } = this.parseFilename(filename);
-      filepath = path.join(dataDir, `${basename}-${Date.now().toString()}.${ext}`);
+      filepath = join(dataDir, `${basename}-${Date.now().toString()}.${ext}`);
     }
     return filepath;
   }

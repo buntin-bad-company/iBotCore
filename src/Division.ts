@@ -1,14 +1,6 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import ja from 'dayjs/locale/ja';
 import { Core } from './Core';
-import { checkPathSync } from './utils';
+import { checkPathSync, now } from './utils';
 import { Message, MessageCreateOptions, MessagePayload } from 'discord.js';
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.locale('ja');
-dayjs.tz.setDefault('Asia/Tokyo');
 
 export abstract class Division {
   /*
@@ -47,12 +39,12 @@ export abstract class Division {
   abstract get slashCommands(): Command[];
   abstract get events(): EventSet[];
   protected printInfo(message?: string) {
-    const message_ = `iBotCore::${this.name} => ${message || 'undefined'}  [${this.now()}]`;
+    const message_ = `[${now()}] iBotCore::${this.name} => ${message || 'undefined'}`;
     console.log(message_);
     return message_;
   }
   protected printError(message: string) {
-    const message_ = `iBotCore::${this.name} => ${message} [${this.now()}]`;
+    const message_ = `[${now()}] iBotCore::${this.name} => ${message}`;
     console.error(message_);
     return message_;
   }
@@ -89,9 +81,4 @@ export abstract class Division {
     return messages;
   }
   //TODO: channels: Collection<string, Channel>を、引数に取るgeneralBroadcast,castToChannelsを実装する。
-  protected now(arg?: Date, template?: string) {
-    return dayjs(arg)
-      .locale(ja)
-      .format(template || 'YYYY/MM/DD HH:mm:ss:SSS');
-  }
 }

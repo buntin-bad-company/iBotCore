@@ -1,4 +1,12 @@
-import * as fs from 'fs';
+import fs from 'fs';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import ja from 'dayjs/locale/ja';
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.locale('ja');
+dayjs.tz.setDefault('Asia/Tokyo');
 
 export const isValidCommandName = (s: string): boolean => {
   const pattern = /^[-_\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u;
@@ -23,15 +31,15 @@ export const checkPathSync = (path: string): FileStatus => {
   }
 };
 
-export const readJsonFile = <T>(path: string): T | null => {
+export const readJsonFile = <T>(path: string): T | undefined => {
   try {
     if (!fs.existsSync(path)) {
-      return null;
+      return undefined;
     }
     const data = fs.readFileSync(path, 'utf-8');
     return JSON.parse(data) as T;
   } catch (error) {
-    return null;
+    return undefined;
   }
 };
 
@@ -68,4 +76,10 @@ export const systemFirstRunnerEnvManager = (): GeneralConfig => {
     clientId,
     guildId,
   };
+};
+
+export const now = (arg?: Date, template?: string) => {
+  return dayjs(arg)
+    .locale(ja)
+    .format(template || 'YYYY/MM/DD HH:mm:ss:SSS');
 };

@@ -2,6 +2,8 @@ import fs from 'fs';
 import { MNBotData } from './types';
 const path = 'data/MailNotification/bot_data.json';
 
+//TODO: MailNotificationインスタンスに組み込み
+
 const blank: MNBotData = {
   color: '#000000',
   url: '',
