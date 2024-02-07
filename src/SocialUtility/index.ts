@@ -116,19 +116,17 @@ export class SocialUtility extends Division {
         Typescript Type Slice 
          */
         await interaction.deferReply();
-
         const channelId = interaction.channelId;
-
         const mailNotificationDivisionInstance = this.core.divisions.get('MailNotification');
         if (!mailNotificationDivisionInstance) {
           logMessage = this.printError('su_mailnotification_show_db_info : MailNotification Division is undefined');
           const result = await interaction.editReply(logMessage);
-          logMessage = this.printInfo(`su_mailnotification_show_db_info : ${result.content}`);
+          logMessage = this.printInfo(`su_mailnotification_show_db_info : \n${result.content}`);
         }
         const channel = this.core.channels.cache.get(channelId);
         if (!channel) {
           logMessage = this.printError('su_mailnotification_show_db_info : channel is undefined');
-          const result = await interaction.editReply(logMessage);
+          await interaction.editReply(logMessage);
         }
         const mailNotification = mailNotificationDivisionInstance as MailNotification;
         const excuseResult = await mailNotification.disclosureDatabases();

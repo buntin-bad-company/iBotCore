@@ -13,9 +13,14 @@ export class FileBinder extends Division {
   private urlPreset: string;
   constructor(core: Core) {
     super(core);
-    const dataDir = Bun.env.FILE_BINDER_DATA_DIR!;
-    const botData = Bun.env.FILE_BINDER_BOT_DATA!;
-    const urlPreset = Bun.env.FILE_BINDER_URL_PRESET!;
+    //
+    const dataDir = Bun.env.FILE_BINDER_DATA_DIR;
+    const botData = Bun.env.FILE_BINDER_BOT_DATA;
+    const urlPreset = Bun.env.FILE_BINDER_URL_PRESET;
+    if (!dataDir || !botData || !urlPreset) {
+      throw new Error('dataDir or botData or urlPreset is not set.')
+    }
+    //
     this.urlPreset = urlPreset;
     this.bindingDirPath = path.join(this.division_data_dir, dataDir);
     if (!fs.existsSync(this.bindingDirPath)) {

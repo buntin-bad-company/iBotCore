@@ -1,8 +1,11 @@
 import { Core } from './Core';
+import { systemFirstRunnerEnvManager } from './utils';
+//Divisions
 import { FileBinder } from './FileBinder';
 import { MailNotification } from './MailNotification';
-import { systemFirstRunnerEnvManager } from './utils';
 import { SocialUtility } from './SocialUtility';
+import { TodoManager } from './TodoManager';
+
 
 export class IBotCore extends Core {
   constructor() {
@@ -19,6 +22,7 @@ export class IBotCore extends Core {
     const fileBinder = new FileBinder(this);
     const mailNotification = new MailNotification(this);
     const socialUtility = new SocialUtility(this);
+    const todoManager = new TodoManager(this);
 
     // Edit HERE to add your own divisions
     // this.addDivision(fileBinder);
@@ -27,6 +31,7 @@ export class IBotCore extends Core {
     this.addDivision(fileBinder);
     this.addDivision(mailNotification);
     this.addDivision(socialUtility);
+    this.addDivision(todoManager);
 
     if (ifRegister) {
       this.commandRegister();

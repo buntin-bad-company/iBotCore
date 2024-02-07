@@ -143,3 +143,5 @@ data/MailNotification/*
 ## ibotcore socialUtility
 data/SocialUtility/*
 !data/SocialUtility/.gitkeep
+data/TodoManager/*
+!data/TodoManager/.gitkeep
