@@ -27,14 +27,11 @@ export class FileBinder extends Division {
       this.printInfo(`Binding Data Dir exists: ${this.bindingDirPath}`);
     }
     this.fileBinderDivDataPath = join(this.division_data_dir, botData);
-    if (!fs.existsSync(this.fileBinderDivDataPath)) {
-      throw new Error(
-        `Please provide a valid bot data file.If this run is first time, run src/FileBinder/genBotData.ts [${this.fileBinderDivDataPath}]`
-      );
+    if (this.data === undefined) {
+      throw new Error('botData is undefined.');
     } else {
       this.printInfo(`Bot data file exists: ${this.fileBinderDivDataPath}`);
     }
-
     this.printInitMessage();
   }
   private get data() {

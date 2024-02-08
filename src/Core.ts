@@ -92,7 +92,7 @@ export class Core extends Client {
     return this;
   }
 
-  protected log(message: string) {
+  public log(message: string) {
     let msg = `[${now()}] Core => ${message}`;
     if (message.startsWith('\n')) {
       msg = message.slice(1);
@@ -100,7 +100,7 @@ export class Core extends Client {
     console.log(msg);
     return msg;
   }
-  protected error(message: string) {
+  public error(message: string) {
     const msg = `[${now()}] iBotCore::Core => ${message}`;
     console.error(msg);
     return msg;
@@ -151,16 +151,7 @@ export class Core extends Client {
       once: true,
       event: Events.ClientReady,
       listener: async () => {
-        this.log(`\n----------\nLogged in as ${this.user?.tag}!\n----------`);
-        // const channels = Array.from(this.channels.cache.values());
-        // const textChannels = channels.filter(
-        //   (channel) => channel.type === ChannelType.GuildText
-        // );
-        // this.log('----------\nTextChannels\n----------');
-        // for (const channel of textChannels) {
-        //   this.log(JSON.stringify(channel, null, 2));
-        // }
-        // this.log('--------------------');
+        this.log(chalk.green(`Logged in as ${this.user?.tag}!`));
       },
     };
   }

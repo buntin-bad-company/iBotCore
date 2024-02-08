@@ -26,6 +26,7 @@
     "serverdb",
     "slashcommand",
     "synthia",
-    "uids"
+    "uids",
+    "webui"
   ]
 }

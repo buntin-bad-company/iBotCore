@@ -6,6 +6,8 @@ import { MailNotification } from './MailNotification';
 import { SocialUtility } from './SocialUtility';
 import { TodoManager } from './TodoManager';
 
+//packages
+import chalk from 'chalk';
 
 export class IBotCore extends Core {
   constructor() {
@@ -14,25 +16,20 @@ export class IBotCore extends Core {
       throw new Error('Please provide a valid token, client ID, and guild ID.');
     }
     super(token, clientId);
-
     // Edit HERE to load your own divisions
     // const fileBinder = new FileBinder(this);
     // const mailNotification = new MailNotification(this);
-
     const fileBinder = new FileBinder(this);
     const mailNotification = new MailNotification(this);
     const socialUtility = new SocialUtility(this);
     const todoManager = new TodoManager(this);
-
     // Edit HERE to add your own divisions
     // this.addDivision(fileBinder);
     // this.addDivision(mailNotification);
-
     this.addDivision(fileBinder);
     this.addDivision(mailNotification);
     this.addDivision(socialUtility);
     this.addDivision(todoManager);
-
     if (ifRegister) {
       this.commandRegister();
     }
@@ -47,9 +44,9 @@ export class IBotCore extends Core {
 const iBotCore = new IBotCore();
 iBotCore
   .start()
-  .then(() => {
-    console.log('IBotCore started');
+  .then((iBotCore) => {
+    iBotCore.log('IBotCore started.');
   })
   .catch((error) => {
-    console.error('Error starting IBotCore:', error);
+    iBotCore.error('Error starting IBotCore:' + error.message);
   });
