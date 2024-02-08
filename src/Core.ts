@@ -118,18 +118,18 @@ export class Core extends Client {
       this.error(e as string);
     }
   }
-
+  //CoreEvents
   protected commandHandler: EventSet = {
-    name: 'Core::EventHandler',
+    name: 'Core::CommandHandler',
     once: false,
     event: Events.InteractionCreate,
     listener: async (interaction: Interaction) => {
       if (!interaction.isCommand()) return;
       const { commandName } = interaction;
-      this.log('iBotCore::Core:EventHandler->' + commandName + ' is called');
+      this.log('iBotCore::Core:CommandHandler->' + commandName + ' is called');
       const command = this.commands.get(commandName);
       if (!command) {
-        this.error('iBotCore::Core:EventHandler->' + commandName + ' is not found');
+        this.error('iBotCore::Core:CommandHandler->' + commandName + ' is not found');
         return;
       }
       try {
