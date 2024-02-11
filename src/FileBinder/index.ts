@@ -110,7 +110,7 @@ export class FileBinder extends Division {
     const fb_turn_on: Command = {
       data: new SlashCommandBuilder()
         .setName('fb_turn_on')
-        .setDescription('iBotCore::FileBinder\nturn on file binding with this channel'),
+        .setDescription('iBotCore::FileBinder : turn on file binding with this channel'),
       execute: async (interaction) => {
         const channel = interaction.channel;
         if (!channel || channel.type !== 0) return;

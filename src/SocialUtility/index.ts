@@ -27,13 +27,6 @@ export class SocialUtility extends Division {
     this.printInfo(logMessage);
     this.printInitMessage();
   }
-  /* 
-================================================================================================================================================
-*/
-
-  /* 
-================================================================================================================================================
-*/
   //Division制約 slashCommands get - ():Command[]
   public get slashCommands(): Command[] {
     //su_builtIn

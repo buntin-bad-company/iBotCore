@@ -1,6 +1,6 @@
 import { Core } from './Core';
 import { checkPathSync, now } from './utils';
-import { Message, MessageCreateOptions, MessagePayload } from 'discord.js';
+import { Channel, Message, MessageCreateOptions, MessagePayload } from 'discord.js';
 
 export abstract class Division {
   /*
@@ -38,9 +38,9 @@ export abstract class Division {
   }
   abstract get slashCommands(): Command[];
   abstract get events(): EventSet[];
-  protected printInfo(message?: string) {
+  protected printInfo(message?: string, notPush?: boolean) {
     const message_ = `[${now()}] iBotCore::${this.name} => ${message || 'undefined'}`;
-    console.log(message_);
+    if (!notPush) console.log(message_);
     return message_;
   }
   protected printError(message: string) {
@@ -82,4 +82,12 @@ export abstract class Division {
     return messages;
   }
   //TODO: channels: Collection<string, Channel>を、引数に取るgeneralBroadcast,castToChannelsを実装する。
+  protected getChannelById(channelId: string): Channel | undefined {
+    const channel = this.core.channels.cache.get(channelId);
+    if (!channel) {
+      this.printError(`Channel with ID ${channelId} not found.`);
+      return undefined;
+    }
+    return channel;
+  }
 }

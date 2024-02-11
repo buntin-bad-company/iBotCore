@@ -6,9 +6,6 @@ import { MailNotification } from './MailNotification';
 import { SocialUtility } from './SocialUtility';
 import { TodoManager } from './TodoManager';
 
-//packages
-import chalk from 'chalk';
-
 export class IBotCore extends Core {
   constructor() {
     const { ifRegister, token, clientId, guildId } = systemFirstRunnerEnvManager();

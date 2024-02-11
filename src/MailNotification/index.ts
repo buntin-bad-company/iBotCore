@@ -85,7 +85,6 @@ export class MailNotification extends Division {
     }
     logMessage = 'Constructor : Initialized Imap Server Connections';
     this.printInfo(logMessage);
-
     logMessage = 'Constructor : Initializing Main Switches';
     this.printInfo(logMessage);
     if (this.serverConfigs.length > 0 && this.channelIds.length > 0) {
@@ -119,7 +118,7 @@ export class MailNotification extends Division {
       const { host, user, password } = config;
       const address = `${user}@${host}`;
       const key = `${host}:${user}`;
-      let logMessage = this.createLogMessage(`initImapServers : Initializing IMAP Server key=${key}`, address);
+      let logMessage = this.createLogMessage(`initImapServers : Initializing IMAP Server key=${key}`, false, address);
       try {
         const imapServer = new ImapFlow({
           host: host,
@@ -136,7 +135,7 @@ export class MailNotification extends Division {
         logMessage = this.createLogMessage(msg);
         this.imapServerConnections.set(key, null);
       }
-      logMessage = this.createLogMessage('initImapServers : Initialized', address);
+      logMessage = this.createLogMessage('initImapServers : Initialized', false, address);
       this.printInfo(logMessage);
     }
   }
@@ -162,14 +161,14 @@ export class MailNotification extends Division {
       logMessage = this.printInfo(mailIdExists ? mailIdExistsMessage : mailIdNotExistsMessage);
       // メールIDがDBに存在する場合は何もしない
       if (mailIdExists) {
-        logMessage = this.createLogMessage('handleNewMail : Mail ID exists', parsedMail.from?.text);
+        logMessage = this.createLogMessage('handleNewMail : Mail ID exists', false, parsedMail.from?.text);
         logMessage = this.printInfo(logMessage);
         return;
       }
       // メールIDをDBに追加
       this.addMailId(mailId);
       this.mailNotificationQueue.push(parsedMail);
-      logMessage = this.createLogMessage('handleNewMail : Mail ID added', parsedMail.from?.text);
+      logMessage = this.createLogMessage('handleNewMail : Mail ID added', false, parsedMail.from?.text);
       logMessage = this.printInfo(logMessage);
     } catch (error) {
       console.error('Error handling new mail:', error);
@@ -224,126 +223,138 @@ export class MailNotification extends Division {
   /* 
 ================================================================================================================================================
 */
-  //mail check main 意図的にinteractionは入れている(TypeScript制約による)
   private async mailCronHandler(_interaction?: CommandInteraction) {
-    let logMessage = 'mailCronHandler: started';
-    const ifCommandInteraction = (_interaction !== undefined && _interaction.commandName === 'mn_fetch') as boolean;
-    this.printInfo(logMessage);
-    if (ifCommandInteraction) {
-      if (_interaction === undefined) {
-        logMessage = 'mailCronHandler: _interaction is undefined';
-        logMessage = this.printError(logMessage);
-        await this.discordNotification(logMessage);
-        return;
-      }
-      logMessage = `mailCronHandler:${_interaction.commandName} => called with DevMode.`;
-      logMessage = this.printInfo(logMessage);
-      this.discordNotification(
-        'SlashCommand : mailCronHandler called with Bun-DevTools.  \nalready iBotCore::MailNotification => Instance is online.'
-      );
-      logMessage = `mailCronHandler:${_interaction.commandName} => replied with Bun-DevTools.`;
-      logMessage = this.printInfo(logMessage);
-      await _interaction.deferReply();
-    }
-    const serverConfigs = this.serverConfigs;
-    logMessage = `mailCronHandler: Server configs loaded: ${serverConfigs.length} counts`;
-    this.printInfo(logMessage);
-    const length = serverConfigs.length;
-    for (let i = 0; i < length; i++) {
-      const config = serverConfigs[i];
-      const { host, user, password } = config;
-      const address = `${user}@${host}`;
-      const key = `${host}:${user}`;
-      logMessage = this.createLogMessage(`mailCronHandler: Checking mail for ${address}`, address, i + 1, length);
-      const imapServer = this.imapServerConnections.get(key);
-      if (!imapServer) {
-        logMessage = this.createLogMessage('mailCronHandler: imapServer not found', address, i + 1, length);
-        this.printInfo(logMessage);
-        continue;
-      }
-      await imapServer.connect();
-      const fetchQueryObject: FetchQueryObject = {
-        uid: true,
-        envelope: true,
-        size: true,
-        bodyParts: ['text', 'html'],
-        source: true,
-      };
-      const mailIds = await imapServer.search({ seen: false });
-      const mailIdsLength = mailIds.length;
-      logMessage = this.createLogMessage(
-        `mailCronHandler: ${mailIdsLength} mails found for ${address}`,
-        address,
-        i + 1,
-        length
-      );
-      this.printInfo(logMessage);
-      for (let j = 0; j < mailIdsLength; j++) {
-        const mailId = mailIds[j];
-        logMessage = this.createLogMessage(
-          `mailCronHandler: Checking mail ${mailId} for ${address}`,
-          address,
-          j + 1,
-          mailIdsLength
+    let text = '';
+    try {
+      const ifCommandInteraction = (_interaction !== undefined && _interaction.commandName === 'mn_fetch') as boolean;
+      text += this.printInfo('mailCronHandler: started', true) + '\n';
+      if (ifCommandInteraction) {
+        if (_interaction === undefined) {
+          const logMessage = this.printError('[ERROR]mailCronHandler: _interaction is undefined');
+          await this.discordNotification(logMessage);
+          return;
+        }
+        text += this.printInfo(`mailCronHandler:${_interaction.commandName} => called with DevMode.`, true) + '\n';
+        this.discordNotification(
+          'SlashCommand : mailCronHandler called with Bun-DevTools.  \nalready iBotCore::MailNotification => Instance is online.'
         );
-        this.printInfo(logMessage);
-        const mailData = await imapServer.fetchOne(mailId.toString(), fetchQueryObject);
-        const parsedMail = await simpleParser(mailData.source);
-        const mailIdExists = this.checkMailIdExists(parsedMail.messageId || 'undefined');
-        const mailIdExistsMessage = `mailCronHandler: Mail ID exists : ${parsedMail.messageId}`;
-        const mailIdNotExistsMessage = `mailCronHandler: Mail ID not exists : ${parsedMail.messageId}`;
-        logMessage = this.createLogMessage(
-          mailIdExists ? mailIdExistsMessage : mailIdNotExistsMessage,
+        text +=
+          this.printInfo(`mailCronHandler:${_interaction.commandName} => replied with Bun-DevTools.`, true) + '\n';
+        await _interaction.deferReply();
+      }
+      const serverConfigs = this.serverConfigs;
+      text += this.printInfo(`mailCronHandler: Server configs loaded: ${serverConfigs.length} counts`, true) + '\n';
+      const length = serverConfigs.length;
+      for (let i = 0; i < length; i++) {
+        const config = serverConfigs[i];
+        const { host, user, password } = config;
+        const address = `${user}@${host}`;
+        const key = `${host}:${user}`;
+        text +=
+          this.createLogMessage(`mailCronHandler: Checking mail for ${address}`, true, address, i + 1, length) + '\n';
+        const imapServer = this.imapServerConnections.get(key);
+        if (!imapServer) {
+          text += this.createLogMessage('mailCronHandler: imapServer not found', true, address, i + 1, length) + '\n';
+          continue;
+        }
+        await imapServer.connect();
+        const fetchQueryObject: FetchQueryObject = {
+          uid: true,
+          envelope: true,
+          size: true,
+          bodyParts: ['text', 'html'],
+          source: true,
+        };
+        const mailIds = await imapServer.search({ seen: false });
+        const mailIdsLength = mailIds.length;
+        text += this.createLogMessage(
+          `mailCronHandler: ${mailIdsLength} mails found for ${address}`,
+          true,
           address,
-          j + 1,
-          mailIdsLength
+          i + 1,
+          length
         );
-        this.printInfo(logMessage);
-        if (mailIdExists) {
-          logMessage = this.createLogMessage(
-            `mailCronHandler: Mail ID exists : ${parsedMail.messageId}`,
+        for (let j = 0; j < mailIdsLength; j++) {
+          const mailId = mailIds[j];
+          text += this.createLogMessage(
+            `mailCronHandler: Checking mail ${mailId} for ${address}`,
+            true,
             address,
             j + 1,
             mailIdsLength
           );
-          this.printInfo(logMessage);
-          continue;
+          const mailData = await imapServer.fetchOne(mailId.toString(), fetchQueryObject);
+          const parsedMail = await simpleParser(mailData.source);
+          const mailIdExists = this.checkMailIdExists(parsedMail.messageId || 'undefined');
+          const mailIdExistsMessage = `mailCronHandler: Mail ID exists : ${parsedMail.messageId}`;
+          const mailIdNotExistsMessage = `mailCronHandler: Mail ID not exists : ${parsedMail.messageId}`;
+          text += this.createLogMessage(
+            mailIdExists ? mailIdExistsMessage : mailIdNotExistsMessage,
+            true,
+            address,
+            j + 1,
+            mailIdsLength
+          );
+          if (mailIdExists) {
+            text += this.createLogMessage(
+              `mailCronHandler: Mail ID exists : ${parsedMail.messageId}`,
+              true,
+              address,
+              j + 1,
+              mailIdsLength
+            );
+            continue;
+          }
+          this.addMailId(mailId.toString());
+          this.mailNotificationQueue.push(parsedMail);
+          text += this.createLogMessage(
+            `mailCronHandler: Mail ID added : ${parsedMail.messageId}`,
+            true,
+            address,
+            j + 1,
+            mailIdsLength
+          );
         }
-        this.addMailId(mailId.toString());
-        this.mailNotificationQueue.push(parsedMail);
-        logMessage = this.createLogMessage(
-          `mailCronHandler: Mail ID added : ${parsedMail.messageId}`,
-          address,
-          j + 1,
-          mailIdsLength
-        );
-        logMessage = this.printInfo(logMessage);
       }
-    }
-    if (ifCommandInteraction) {
-      if (_interaction === undefined) {
-        logMessage = 'mailCronHandler: _interaction is undefined';
-        logMessage = this.printError(logMessage);
-        await this.discordNotification(logMessage);
-        return;
+      if (ifCommandInteraction) {
+        if (_interaction === undefined) {
+          const logMessage = this.printError('mailCronHandler: _interaction is undefined');
+          await this.discordNotification(logMessage);
+          return;
+        }
+        const buf = this.printInfo(`mailCronHandler:${_interaction.commandName} => done`);
+        text += buf;
+        if (_interaction.deferred) {
+          await _interaction.followUp({ content: buf });
+        }
+        if (_interaction.replied) {
+          await _interaction.editReply({ content: buf });
+        }
       }
-      logMessage = `mailCronHandler:${_interaction.commandName} => done`;
+      let logMessage = 'mailCronHandler: done';
       logMessage = this.printInfo(logMessage);
-      if (_interaction.deferred) {
-        await _interaction.followUp({ content: logMessage });
+      return;
+    } catch (e) {
+      let message = this.printInfo('mailCronHandler: Error occurred', true);
+      if (e instanceof Error) {
+        text += this.printError(`mailCronHandler->${e.message}`);
+        message += '\n' + util.truncateString(e.message, 3000);
+      } else {
+        text += this.printError(`mailCronHandler->${e}`);
+        message += '\n' + util.truncateString(e as string, 3000);
       }
-      if (_interaction.replied) {
-        await _interaction.editReply({ content: logMessage });
-      }
+      await this.discordNotification(message);
+      this.printError(text);
     }
-    logMessage = 'mailCronHandler: done';
-    logMessage = this.printInfo(logMessage);
-    //push to discord
-    await this.discordNotification(logMessage);
-    return;
   }
 
-  private createLogMessage(message: string, address?: string, current?: number, total?: number): string {
+  private createLogMessage(
+    message: string,
+    notPush?: boolean,
+    address?: string,
+    current?: number,
+    total?: number
+  ): string {
     let logMessage = `${message}`;
     if (address) {
       logMessage += ` for ${address}`;
@@ -351,7 +362,7 @@ export class MailNotification extends Division {
     if (current !== undefined && total !== undefined) {
       logMessage += ` (${current}/${total})`;
     }
-    return this.printInfo(logMessage);
+    return this.printInfo(logMessage, notPush);
   }
   /* 
 ================================================================================================================================================

@@ -12,6 +12,9 @@ import {
 import { Division } from './Division';
 import { now } from './utils';
 export class Core extends Client {
+  /*
+  Client (https://discord.js.org/docs/packages/discord.js/main/Client:Class) 
+  */
   public static instance: Core;
   public coreToken: string;
   public coreClientId: string;

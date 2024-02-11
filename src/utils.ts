@@ -83,3 +83,7 @@ export const now = (arg?: Date, template?: string) => {
     .locale(ja)
     .format(template || 'YYYY/MM/DD HH:mm:ss:SSS');
 };
+
+export const truncateString = (str: string, maxLength: number): string => {
+  return str.length > maxLength ? str.slice(0, maxLength) : str;
+};
