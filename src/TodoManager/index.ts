@@ -48,6 +48,7 @@ export class TodoManager extends Division {
     const loaded = util.readJsonFile<TodoManagerData>(this.dataPath);
     if (!loaded) {
       const defaultData: TodoManagerData = {
+        webuiPort: 3000,
         webuiUrlPreset: '',
         todoChannelIds: [],
       };
@@ -118,7 +119,7 @@ export class TodoManager extends Division {
         await interaction.reply('test command is called');
       },
     };
-    const commands: Command[] = [tm_turn_on];
+    const commands: Command[] = [tm_turn_on, tm_test];
     return commands;
   }
   //Division制約 events get - ():EventSet[]
