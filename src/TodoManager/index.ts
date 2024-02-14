@@ -1,7 +1,7 @@
-import { join } from 'path';
 import { Server } from 'bun';
+import { join } from 'path';
 import { Hono } from 'hono';
-import { SlashCommandBuilder } from 'discord.js';
+import { ChannelType, SlashCommandBuilder } from 'discord.js';
 //channel as todo機能
 import { Division } from '../Division';
 import { Core } from '../Core';
@@ -14,10 +14,13 @@ type TodoManagerData = {
 };
 type TodoEntry = {
   id: string;
-  title: string;
-  description: string;
-  deadline: string;
-  done: boolean;
+  content: string;
+};
+
+type TodoChannelPayload = {
+  channelId: string;
+  channelName: string | undefined;
+  entries: TodoEntry[] | undefined;
 };
 
 export class TodoManager extends Division {
@@ -25,7 +28,6 @@ export class TodoManager extends Division {
   private dataPath: string;
   constructor(core: Core) {
     super(core);
-
     const botDataFilename = Bun.env.TODO_MANAGER_BOT_DATA;
     if (!botDataFilename) throw new Error('botData is not set.');
     const dataDir = this.division_data_dir;
@@ -62,16 +64,46 @@ export class TodoManager extends Division {
   set data(data: TodoManagerData) {
     util.writeJsonFile(this.dataPath, data);
   }
+  private async getTodoContents() {
+    const data = this.data;
+    const todoChannelIds = data.todoChannelIds;
+    const contents: TodoChannelPayload[] = [];
+    for (const id of todoChannelIds) {
+      const payload: TodoChannelPayload = { channelId: id, channelName: undefined, entries: undefined };
+      const channel = this.getChannelById(id);
+      if (channel) {
+        //channel is not undefined
+        if (channel.type === ChannelType.GuildText || channel.type === ChannelType.DM) {
+          //channel is supported
+          payload.channelName = channel.type === ChannelType.DM ? 'DMChannel' : channel.name;
+          const messages = await this.getChannelContents(id);
+          if (messages) {
+            //message is not undefined
+            const entries: TodoEntry[] = [];
+            for (const message of messages) {
+              entries.push({ id: message.id, content: message.content });
+            }
+            payload.entries = entries;
+          } else {
+            //messages is undefined
+            this.printError(`Failed to get channel contents. [${id}]`);
+          }
+        } else {
+          //channel is not supported
+          this.printError(`Channel is not supported. [${id}]`);
+        }
+      } else {
+        //channel is undefined
+        this.printError(`Channel not found. [${id}]`);
+      }
+      contents.push(payload);
+    }
+    return contents;
+  }
   private addTodoChannelId(id: string) {
     const data = this.data;
     data.todoChannelIds.push(id);
     this.data = data;
-  }
-  private syncChannel2Database() {
-    //
-  }
-  private addTodo2Database(channelId: string) {
-    const messages = this.getChannelContents(channelId);
   }
   private async getChannelContents(id: string) {
     const channel = await this.core.channels.fetch(id);
