@@ -17,6 +17,7 @@
     // "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "jsx": "react-jsx", // support JSX
+    "jsxImportSource": "hono/jsx",
     "allowJs": true, // allow importing `.js` from `.ts`
 
     "strict": true,

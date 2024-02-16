@@ -7,6 +7,9 @@ import { Division } from '../Division';
 import { Core } from '../Core';
 import * as util from '../utils';
 
+//webui
+import { homeRender } from './webui';
+
 type TodoManagerData = {
   webuiPort: number;
   webuiUrlPreset: string;
@@ -22,10 +25,10 @@ type TodoChannelPayload = {
   channelName: string | undefined;
   entries: TodoEntry[] | undefined;
 };
-
 export class TodoManager extends Division {
   private server: Server;
   private dataPath: string;
+
   constructor(core: Core) {
     super(core);
     const botDataFilename = Bun.env.TODO_MANAGER_BOT_DATA;
@@ -44,6 +47,9 @@ export class TodoManager extends Division {
   private getHonoFetch(): typeof Hono.prototype.fetch {
     const app = new Hono();
     app.get('/', (c) => c.text('Hello, Hono & Bun!'));
+    app.get('/home', (c) => {
+      return homeRender(c);
+    });
     return app.fetch;
   }
   get data() {
@@ -64,6 +70,7 @@ export class TodoManager extends Division {
   set data(data: TodoManagerData) {
     util.writeJsonFile(this.dataPath, data);
   }
+
   private async getTodoContents() {
     const data = this.data;
     const todoChannelIds = data.todoChannelIds;
